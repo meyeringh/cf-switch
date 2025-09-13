@@ -1,131 +1,38 @@
+version: 2
+
 linters-settings:
   gci:
     local-prefixes: github.com/meyeringh/cf-switch
-  godot:
-    capital: false
-  gofmt:
-    simplify: true
   goimports:
     local-prefixes: github.com/meyeringh/cf-switch
-  golint:
-    min-confidence: 0
-  gomnd:
-    checks:
-      - argument
-      - case
-      - condition
-      - return
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-  govet:
-    check-shadowing: true
-    settings:
-      printf:
-        funcs:
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
   lll:
     line-length: 140
-  maligned:
-    suggest-new: true
   misspell:
     locale: US
 
 linters:
   disable-all: true
   enable:
-    - bodyclose
-    - deadcode
-    - depguard
-    - dogsled
-    - dupl
     - errcheck
-    - exhaustive
-    - exportloopref
-    - funlen
-    - gci
-    - gochecknoinits
-    - gocognit
-    - goconst
-    - gocritic
-    - gocyclo
-    - godot
-    - godox
-    - goerr113
-    - gofmt
-    - gofumpt
-    - goheader
-    - goimports
-    - golint
-    - gomnd
-    - gomodguard
-    - goprintffuncname
-    - gosec
     - gosimple
     - govet
     - ineffassign
-    - lll
-    - makezero
-    - misspell
-    - nakedret
-    - nestif
-    - noctx
-    - nolintlint
-    - rowserrcheck
     - staticcheck
-    - structcheck
-    - stylecheck
     - typecheck
-    - unconvert
-    - unparam
     - unused
-    - varcheck
-    - whitespace
+    - gofmt
+    - goimports
+    - gosec
+    - misspell
 
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
         - funlen
         - gocognit
         - gocyclo
-    - path: cmd/
-      linters:
-        - gochecknoinits
-    - linters:
-        - lll
-      source: "^//go:generate "
 
 run:
   timeout: 10m
-  issues-exit-code: 1
   tests: true
-  skip-dirs:
-    - bin
-    - vendor
-    - var
-    - tmp
-    - .cache
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*\\.gen\\.go$"
-
-output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
