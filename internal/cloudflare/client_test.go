@@ -20,7 +20,7 @@ func TestNewClient(t *testing.T) {
 	client := NewClient("test-token", logger)
 
 	if client == nil {
-		t.Error("expected client, got nil")
+		t.Fatal("expected client, got nil")
 	}
 
 	if client.apiToken != "test-token" {

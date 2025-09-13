@@ -48,7 +48,7 @@ func NewClient(apiToken string, logger *slog.Logger) *Client {
 func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string) (*types.CloudflareRuleset, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/phases/%s/entrypoint", c.baseURL, zoneID, phase)
 
-	resp, err := c.makeRequest(ctx, "GET", url, nil)
+	resp, err := c.makeRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entrypoint ruleset: %w", err)
 	}
@@ -96,7 +96,7 @@ func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase stri
 		"description": fmt.Sprintf("Managed by cf-switch for %s phase", phase),
 	}
 
-	resp, err := c.makeRequest(ctx, "POST", url, payload)
+	resp, err := c.makeRequest(ctx, http.MethodPost, url, payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entrypoint ruleset: %w", err)
 	}
@@ -133,7 +133,7 @@ func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase stri
 func (c *Client) AddRule(ctx context.Context, zoneID, rulesetID string, rule types.CloudflareRule) (*types.CloudflareRule, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules", c.baseURL, zoneID, rulesetID)
 
-	resp, err := c.makeRequest(ctx, "POST", url, rule)
+	resp, err := c.makeRequest(ctx, http.MethodPost, url, rule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add rule: %w", err)
 	}
@@ -170,7 +170,7 @@ func (c *Client) AddRule(ctx context.Context, zoneID, rulesetID string, rule typ
 func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID string, updates map[string]interface{}) (*types.CloudflareRule, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules/%s", c.baseURL, zoneID, rulesetID, ruleID)
 
-	resp, err := c.makeRequest(ctx, "PATCH", url, updates)
+	resp, err := c.makeRequest(ctx, http.MethodPatch, url, updates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update rule: %w", err)
 	}

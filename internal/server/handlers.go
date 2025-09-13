@@ -199,7 +199,8 @@ func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) 
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		// Log the error but don't change the response since headers are already written.
-		slog.Error("Failed to encode JSON response", "error", err)
+		// Using context.Background() since we don't have request context here.
+		slog.ErrorContext(context.Background(), "Failed to encode JSON response", "error", err)
 	}
 }
 

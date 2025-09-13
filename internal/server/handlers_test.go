@@ -13,7 +13,11 @@ import (
 	"github.com/meyeringh/cf-switch/pkg/types"
 )
 
-// MockReconciler implements RuleReconciler for testing.
+//	t.Run("success", func(t *testing.T) {
+		reconciler := &MockReconciler{}
+		handler := NewRuleHandler(reconciler, slog.Default())
+
+		req := httptest.NewRequest(http.MethodGet, "/v1/rule", nil)Reconciler implements RuleReconciler for testing.
 type MockReconciler struct {
 	rule          *types.Rule
 	toggleErr     error
@@ -137,7 +141,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", tt.path, nil)
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}
@@ -176,7 +180,7 @@ func TestRuleHandler_GetRule(t *testing.T) {
 		reconciler := &MockReconciler{}
 		handler := NewRuleHandler(reconciler, logger)
 
-		req := httptest.NewRequest("GET", "/v1/rule", nil)
+		req := httptest.NewRequest(http.MethodGet, "/v1/rule", nil)
 		rr := httptest.NewRecorder()
 
 		handler.GetRule(rr, req)
@@ -199,7 +203,7 @@ func TestRuleHandler_GetRule(t *testing.T) {
 		reconciler := &MockReconciler{getCurrentErr: &MockError{"test error"}}
 		handler := NewRuleHandler(reconciler, logger)
 
-		req := httptest.NewRequest("GET", "/v1/rule", nil)
+		req := httptest.NewRequest(http.MethodGet, "/v1/rule", nil)
 		rr := httptest.NewRecorder()
 
 		handler.GetRule(rr, req)
@@ -222,7 +226,7 @@ func TestRuleHandler_ToggleRule(t *testing.T) {
 		reqBody := types.ToggleRequest{Enabled: true}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest("POST", "/v1/rule/enable", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v1/rule/enable", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
@@ -246,7 +250,7 @@ func TestRuleHandler_ToggleRule(t *testing.T) {
 		reconciler := &MockReconciler{}
 		handler := NewRuleHandler(reconciler, logger)
 
-		req := httptest.NewRequest("POST", "/v1/rule/enable", bytes.NewReader([]byte("invalid")))
+		req := httptest.NewRequest(http.MethodPost, "/v1/rule/enable", bytes.NewReader([]byte("invalid")))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
