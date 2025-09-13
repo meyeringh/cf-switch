@@ -187,7 +187,7 @@ func metricsMiddleware(next http.Handler, metrics *Metrics, logger *slog.Logger)
 	})
 }
 
-// responseWriter wraps http.ResponseWriter to capture status code
+// responseWriter wraps http.ResponseWriter to capture status code.
 type responseWriter struct {
 	http.ResponseWriter
 

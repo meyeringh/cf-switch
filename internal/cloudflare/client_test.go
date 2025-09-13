@@ -63,10 +63,10 @@ func TestClient_GetEntrypointRuleset(t *testing.T) {
 			},
 		},
 		{
-			name:        "not found",
-			response:    ``,
-			statusCode:  http.StatusNotFound,
-			expectedNil: true,
+			name:          "not found",
+			response:      ``,
+			statusCode:    http.StatusNotFound,
+			expectedError: true,
 		},
 		{
 			name: "API error",
@@ -136,7 +136,7 @@ func TestClient_CreateEntrypointRuleset(t *testing.T) {
 		if r.URL.Path != "/zones/test-zone/rulesets" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Method != "POST" {
+		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 
@@ -188,7 +188,7 @@ func TestClient_AddRule(t *testing.T) {
 		if r.URL.Path != expectedPath {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Method != "POST" {
+		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 
@@ -251,7 +251,7 @@ func TestClient_UpdateRule(t *testing.T) {
 		if r.URL.Path != expectedPath {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Method != "PATCH" {
+		if r.Method != http.MethodPatch {
 			t.Errorf("expected PATCH, got %s", r.Method)
 		}
 

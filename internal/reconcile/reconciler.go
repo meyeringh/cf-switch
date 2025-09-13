@@ -196,11 +196,11 @@ func (r *Reconciler) ensureEntrypointRuleset(ctx context.Context) (*types.Cloudf
 
 	// Try to get existing entrypoint.
 	ruleset, err := r.cfClient.GetEntrypointRuleset(ctx, r.config.CloudflareZoneID, phase)
-	if err != nil {
+	if err != nil && !errors.Is(err, cloudflare.ErrEntrypointNotFound) {
 		return nil, fmt.Errorf("failed to get entrypoint ruleset: %w", err)
 	}
 
-	if ruleset != nil {
+	if err == nil {
 		r.logger.Debug("Found existing entrypoint ruleset", "ruleset_id", ruleset.ID)
 		return ruleset, nil
 	}

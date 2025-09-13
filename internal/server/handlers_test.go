@@ -21,7 +21,7 @@ type MockReconciler struct {
 	getCurrentErr error
 }
 
-func (m *MockReconciler) GetCurrentRule(ctx context.Context) (*types.Rule, error) {
+func (m *MockReconciler) GetCurrentRule(_ context.Context) (*types.Rule, error) {
 	if m.getCurrentErr != nil {
 		return nil, m.getCurrentErr
 	}
@@ -70,7 +70,7 @@ func TestAuthMiddleware(t *testing.T) {
 	middleware := NewAuthMiddleware(token, logger)
 
 	// Create a test handler.
-	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("authorized"))
 	})
@@ -272,7 +272,7 @@ func TestRuleHandler_UpdateHosts(t *testing.T) {
 		}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest("PUT", "/v1/rule/hosts", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/v1/rule/hosts", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
@@ -299,7 +299,7 @@ func TestRuleHandler_UpdateHosts(t *testing.T) {
 		reqBody := types.UpdateHostsRequest{Hostnames: []string{}}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest("PUT", "/v1/rule/hosts", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/v1/rule/hosts", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
@@ -319,7 +319,7 @@ func TestHealthHandler(t *testing.T) {
 	handler := NewHealthHandler(logger)
 
 	t.Run("health check", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/healthz", nil)
+		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		rr := httptest.NewRecorder()
 
 		handler.Health(rr, req)
@@ -339,7 +339,7 @@ func TestHealthHandler(t *testing.T) {
 	})
 
 	t.Run("readiness check", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/readyz", nil)
+		req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 		rr := httptest.NewRecorder()
 
 		handler.Ready(rr, req)

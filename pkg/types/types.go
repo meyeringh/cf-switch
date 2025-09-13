@@ -190,9 +190,9 @@ const (
 	// RuleDescription is the description used for the managed rule.
 	RuleDescription = "cf-switch:global"
 
-	// Phase for Cloudflare WAF Custom Rules.
+	// HTTPRequestFirewallCustomPhase is the phase for Cloudflare WAF Custom Rules.
 	HTTPRequestFirewallCustomPhase = "http_request_firewall_custom"
 
-	// Action for blocking requests.
+	// BlockAction is the action for blocking requests.
 	BlockAction = "block"
 )

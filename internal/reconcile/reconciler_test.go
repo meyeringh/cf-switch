@@ -103,8 +103,8 @@ func TestReconciler_StopChannels(t *testing.T) {
 	}
 
 	// Test that the channels are properly typed.
-	var stopCh chan struct{} = reconciler.stopCh
-	var stoppedCh chan struct{} = reconciler.stoppedCh
+	var stopCh = reconciler.stopCh
+	var stoppedCh = reconciler.stoppedCh
 
 	if stopCh == nil || stoppedCh == nil {
 		t.Error("channels should be properly initialized")

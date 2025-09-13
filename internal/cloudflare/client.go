@@ -15,6 +15,9 @@ import (
 	"github.com/meyeringh/cf-switch/pkg/types"
 )
 
+// ErrEntrypointNotFound indicates that the requested entrypoint ruleset does not exist.
+var ErrEntrypointNotFound = errors.New("entrypoint ruleset not found")
+
 const (
 	// HTTP timeout for Cloudflare API requests.
 	defaultTimeout = 30 * time.Second
@@ -59,7 +62,7 @@ func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string)
 	}()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil // Entrypoint doesn't exist.
+		return nil, ErrEntrypointNotFound
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -240,7 +243,7 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 
 	// Simple retry logic for rate limiting.
 	var resp *http.Response
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
 			if attempt == maxRetries-1 {
