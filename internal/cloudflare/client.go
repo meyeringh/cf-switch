@@ -133,7 +133,11 @@ func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase stri
 }
 
 // AddRule adds a new rule to the given ruleset.
-func (c *Client) AddRule(ctx context.Context, zoneID, rulesetID string, rule types.CloudflareRule) (*types.CloudflareRule, error) {
+func (c *Client) AddRule(
+	ctx context.Context,
+	zoneID, rulesetID string,
+	rule types.CloudflareRule,
+) (*types.CloudflareRule, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules", c.baseURL, zoneID, rulesetID)
 
 	resp, err := c.makeRequest(ctx, http.MethodPost, url, rule)
@@ -260,9 +264,9 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 				if seconds, parseErr := strconv.Atoi(retryAfter); parseErr == nil {
 					if seconds <= maxRetryWaitSeconds { // Don't wait more than 60 seconds.
 						if err := resp.Body.Close(); err != nil {
-							c.logger.Warn("Failed to close response body", "error", err)
+							c.logger.WarnContext(ctx, "Failed to close response body", "error", err)
 						}
-						c.logger.Warn("Rate limited, retrying",
+						c.logger.WarnContext(ctx, "Rate limited, retrying",
 							"attempt", attempt+1,
 							"retry_after", seconds,
 							"request_id", reqID)
@@ -272,7 +276,7 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 				}
 			}
 			if err := resp.Body.Close(); err != nil {
-				c.logger.Warn("Failed to close response body", "error", err)
+				c.logger.WarnContext(ctx, "Failed to close response body", "error", err)
 			}
 			return nil, errors.New("rate limited and retry would take too long")
 		}
@@ -281,7 +285,7 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 	}
 
 	duration := time.Since(start)
-	c.logger.Debug("Cloudflare API request completed",
+	c.logger.DebugContext(ctx, "Cloudflare API request completed",
 		"method", method,
 		"url", url,
 		"status", resp.StatusCode,

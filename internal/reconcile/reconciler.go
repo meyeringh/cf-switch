@@ -94,7 +94,7 @@ func (r *Reconciler) ToggleRule(ctx context.Context, enabled bool) (*types.Rule,
 	r.currentRule.Enabled = updatedRule.Enabled
 	r.currentRule.Version = updatedRule.Version
 
-	r.logger.Info("Rule toggled successfully",
+	r.logger.InfoContext(ctx, "Rule toggled successfully",
 		"rule_id", r.currentRule.ID,
 		"enabled", enabled,
 		"version", r.currentRule.Version)
@@ -135,7 +135,7 @@ func (r *Reconciler) UpdateHosts(ctx context.Context, hostnames []string) (*type
 	r.currentRule.Hostnames = normalizedHosts
 	r.currentRule.Version = updatedRule.Version
 
-	r.logger.Info("Rule hosts updated successfully",
+	r.logger.InfoContext(ctx, "Rule hosts updated successfully",
 		"rule_id", r.currentRule.ID,
 		"hostnames", normalizedHosts,
 		"expression", expression,
@@ -169,7 +169,7 @@ func (r *Reconciler) reconcileLoop() {
 
 // reconcileOnce performs a single reconciliation.
 func (r *Reconciler) reconcileOnce(ctx context.Context) error {
-	r.logger.Debug("Starting reconciliation")
+	r.logger.DebugContext(ctx, "Starting reconciliation")
 
 	// Get or create entrypoint ruleset.
 	ruleset, err := r.ensureEntrypointRuleset(ctx)
@@ -186,7 +186,7 @@ func (r *Reconciler) reconcileOnce(ctx context.Context) error {
 		return fmt.Errorf("failed to ensure rule: %w", err)
 	}
 
-	r.logger.Debug("Reconciliation completed successfully")
+	r.logger.DebugContext(ctx, "Reconciliation completed successfully")
 	return nil
 }
 
@@ -201,18 +201,18 @@ func (r *Reconciler) ensureEntrypointRuleset(ctx context.Context) (*types.Cloudf
 	}
 
 	if err == nil {
-		r.logger.Debug("Found existing entrypoint ruleset", "ruleset_id", ruleset.ID)
+		r.logger.DebugContext(ctx, "Found existing entrypoint ruleset", "ruleset_id", ruleset.ID)
 		return ruleset, nil
 	}
 
 	// Create entrypoint ruleset.
-	r.logger.Info("Creating entrypoint ruleset", "phase", phase)
+	r.logger.InfoContext(ctx, "Creating entrypoint ruleset", "phase", phase)
 	ruleset, err = r.cfClient.CreateEntrypointRuleset(ctx, r.config.CloudflareZoneID, phase)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entrypoint ruleset: %w", err)
 	}
 
-	r.logger.Info("Created entrypoint ruleset", "ruleset_id", ruleset.ID)
+	r.logger.InfoContext(ctx, "Created entrypoint ruleset", "ruleset_id", ruleset.ID)
 	return ruleset, nil
 }
 
@@ -249,7 +249,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 		}
 		r.mutex.Unlock()
 
-		r.logger.Info("Created new rule",
+		r.logger.InfoContext(ctx, "Created new rule",
 			"rule_id", createdRule.ID,
 			"enabled", createdRule.Enabled,
 			"expression", createdRule.Expression)
@@ -264,7 +264,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 	if existingRule.Expression != expectedExpression {
 		updates["expression"] = expectedExpression
 		needsUpdate = true
-		r.logger.Info("Rule expression needs update",
+		r.logger.InfoContext(ctx, "Rule expression needs update",
 			"rule_id", existingRule.ID,
 			"current", existingRule.Expression,
 			"expected", expectedExpression)
@@ -287,7 +287,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 		}
 		r.mutex.Unlock()
 
-		r.logger.Info("Updated rule",
+		r.logger.InfoContext(ctx, "Updated rule",
 			"rule_id", updatedRule.ID,
 			"expression", updatedRule.Expression,
 			"version", updatedRule.Version)
@@ -304,7 +304,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 		}
 		r.mutex.Unlock()
 
-		r.logger.Debug("Rule is up to date", "rule_id", existingRule.ID)
+		r.logger.DebugContext(ctx, "Rule is up to date", "rule_id", existingRule.ID)
 	}
 
 	return nil

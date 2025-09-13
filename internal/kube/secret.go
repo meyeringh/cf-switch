@@ -58,11 +58,11 @@ func (c *Client) EnsureAuthSecret(ctx context.Context) (string, error) {
 		if tokenBytes, exists := secret.Data[TokenKey]; exists {
 			token := string(tokenBytes)
 			if len(token) > 0 {
-				c.logger.Info("Using existing authentication secret", "secret", SecretName)
+				c.logger.InfoContext(ctx, "Using existing authentication secret", "secret", SecretName)
 				return token, nil
 			}
 		}
-		c.logger.Warn("Existing secret has no valid token, regenerating", "secret", SecretName)
+		c.logger.WarnContext(ctx, "Existing secret has no valid token, regenerating", "secret", SecretName)
 	} else if !errors.IsNotFound(err) {
 		return "", fmt.Errorf("failed to get secret %s: %w", SecretName, err)
 	}
@@ -102,20 +102,23 @@ func (c *Client) EnsureAuthSecret(ctx context.Context) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to update secret %s: %w", SecretName, err)
 		}
-		c.logger.Info("Updated authentication secret", "secret", SecretName)
+		c.logger.InfoContext(ctx, "Updated authentication secret", "secret", SecretName)
 	} else {
 		// Create new secret.
 		_, err = c.clientset.CoreV1().Secrets(c.namespace).Create(ctx, secretObj, metav1.CreateOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to create secret %s: %w", SecretName, err)
 		}
-		c.logger.Info("Created authentication secret", "secret", SecretName)
+		c.logger.InfoContext(ctx, "Created authentication secret", "secret", SecretName)
 	}
 
-	c.logger.Info("Authentication token ready",
+	c.logger.InfoContext(ctx, "Authentication token ready",
 		"secret", SecretName,
 		"namespace", c.namespace,
-		"retrieve_command", fmt.Sprintf("kubectl -n %s get secret %s -o jsonpath='{.data.%s}' | base64 -d", c.namespace, SecretName, TokenKey))
+		"retrieve_command", fmt.Sprintf(
+			"kubectl -n %s get secret %s -o jsonpath='{.data.%s}' | base64 -d",
+			c.namespace, SecretName, TokenKey,
+		))
 
 	return token, nil
 }

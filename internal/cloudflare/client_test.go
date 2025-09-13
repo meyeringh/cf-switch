@@ -100,7 +100,11 @@ func TestClient_GetEntrypointRuleset(t *testing.T) {
 			client := NewClient("test-token", logger)
 			client.baseURL = server.URL
 
-			result, err := client.GetEntrypointRuleset(context.Background(), "test-zone", "http_request_firewall_managed")
+			result, err := client.GetEntrypointRuleset(
+				context.Background(),
+				"test-zone",
+				"http_request_firewall_managed",
+			)
 
 			if tt.expectedError {
 				if err == nil {
