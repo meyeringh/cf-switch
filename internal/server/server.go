@@ -2,23 +2,30 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Server represents the HTTP server
+const (
+	// HTTP server timeout configurations.
+	readTimeout  = 30 * time.Second
+	writeTimeout = 30 * time.Second
+	idleTimeout  = 120 * time.Second
+)
+
+// Server represents the HTTP server.
 type Server struct {
 	httpServer *http.Server
 	logger     *slog.Logger
 	metrics    *Metrics
 }
 
-// Metrics holds Prometheus metrics
+// Metrics holds Prometheus metrics.
 type Metrics struct {
 	togglesTotal     *prometheus.CounterVec
 	apiRequestsTotal *prometheus.CounterVec
@@ -26,7 +33,7 @@ type Metrics struct {
 	cfAPIHistogram   *prometheus.HistogramVec
 }
 
-// NewMetrics creates new Prometheus metrics
+// NewMetrics creates new Prometheus metrics.
 func NewMetrics() *Metrics {
 	m := &Metrics{
 		togglesTotal: prometheus.NewCounterVec(
@@ -67,23 +74,23 @@ func NewMetrics() *Metrics {
 	return m
 }
 
-// NewServer creates a new HTTP server
+// NewServer creates a new HTTP server.
 func NewServer(addr string, authToken string, reconciler RuleReconciler, logger *slog.Logger) *Server {
 	metrics := NewMetrics()
 
 	mux := http.NewServeMux()
 
-	// Create handlers
+	// Create handlers.
 	authMiddleware := NewAuthMiddleware(authToken, logger)
 	ruleHandler := NewRuleHandler(reconciler, logger)
 	healthHandler := NewHealthHandler(logger)
 
-	// Health endpoints (no auth required)
+	// Health endpoints (no auth required).
 	mux.HandleFunc("/healthz", healthHandler.Health)
 	mux.HandleFunc("/readyz", healthHandler.Ready)
 	mux.Handle("/metrics", promhttp.Handler())
 
-	// API endpoints (auth required)
+	// API endpoints (auth required).
 	apiMux := http.NewServeMux()
 	apiMux.HandleFunc("/v1/rule", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -109,19 +116,19 @@ func NewServer(addr string, authToken string, reconciler RuleReconciler, logger 
 		ruleHandler.UpdateHosts(w, r)
 	})
 
-	// Apply auth middleware to API routes
+	// Apply auth middleware to API routes.
 	mux.Handle("/v1/", authMiddleware.Middleware(apiMux))
 
-	// Apply metrics middleware to all routes
+	// Apply metrics middleware to all routes.
 	handler := metricsMiddleware(mux, metrics, logger)
 
 	server := &Server{
 		httpServer: &http.Server{
 			Addr:         addr,
 			Handler:      handler,
-			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 30 * time.Second,
-			IdleTimeout:  120 * time.Second,
+			ReadTimeout:  readTimeout,
+			WriteTimeout: writeTimeout,
+			IdleTimeout:  idleTimeout,
 		},
 		logger:  logger,
 		metrics: metrics,
@@ -130,19 +137,19 @@ func NewServer(addr string, authToken string, reconciler RuleReconciler, logger 
 	return server
 }
 
-// Start starts the HTTP server
+// Start starts the HTTP server.
 func (s *Server) Start() error {
 	s.logger.Info("Starting HTTP server", "addr", s.httpServer.Addr)
 	return s.httpServer.ListenAndServe()
 }
 
-// Shutdown gracefully shuts down the HTTP server
+// Shutdown gracefully shuts down the HTTP server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("Shutting down HTTP server")
 	return s.httpServer.Shutdown(ctx)
 }
 
-// UpdateRuleMetrics updates the rule status metric
+// UpdateRuleMetrics updates the rule status metric.
 func (s *Server) UpdateRuleMetrics(enabled bool) {
 	if enabled {
 		s.metrics.ruleStatusGauge.Set(1)
@@ -151,23 +158,23 @@ func (s *Server) UpdateRuleMetrics(enabled bool) {
 	}
 }
 
-// metricsMiddleware adds metrics collection to HTTP handlers
+// metricsMiddleware adds metrics collection to HTTP handlers.
 func metricsMiddleware(next http.Handler, metrics *Metrics, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Wrap the ResponseWriter to capture status code
+		// Wrap the ResponseWriter to capture status code.
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
 		next.ServeHTTP(wrapped, r)
 
 		duration := time.Since(start)
 
-		// Record metrics
+		// Record metrics.
 		metrics.apiRequestsTotal.WithLabelValues(
 			r.Method,
 			r.URL.Path,
-			fmt.Sprintf("%d", wrapped.statusCode),
+			strconv.Itoa(wrapped.statusCode),
 		).Inc()
 
 		logger.Debug("HTTP request completed",
@@ -183,6 +190,7 @@ func metricsMiddleware(next http.Handler, metrics *Metrics, logger *slog.Logger)
 // responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter
+
 	statusCode int
 }
 

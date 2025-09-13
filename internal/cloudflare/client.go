@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,7 +15,16 @@ import (
 	"github.com/meyeringh/cf-switch/pkg/types"
 )
 
-// Client represents a Cloudflare API client
+const (
+	// HTTP timeout for Cloudflare API requests.
+	defaultTimeout = 30 * time.Second
+	// Maximum number of retry attempts for rate limited requests.
+	maxRetries = 3
+	// Maximum wait time for rate limit retry in seconds.
+	maxRetryWaitSeconds = 60
+)
+
+// Client represents a Cloudflare API client.
 type Client struct {
 	httpClient *http.Client
 	baseURL    string
@@ -22,11 +32,11 @@ type Client struct {
 	logger     *slog.Logger
 }
 
-// NewClient creates a new Cloudflare API client
+// NewClient creates a new Cloudflare API client.
 func NewClient(apiToken string, logger *slog.Logger) *Client {
 	return &Client{
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: defaultTimeout,
 		},
 		baseURL:  "https://api.cloudflare.com/client/v4",
 		apiToken: apiToken,
@@ -34,7 +44,7 @@ func NewClient(apiToken string, logger *slog.Logger) *Client {
 	}
 }
 
-// GetEntrypointRuleset gets the entrypoint ruleset for the given zone and phase
+// GetEntrypointRuleset gets the entrypoint ruleset for the given zone and phase.
 func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string) (*types.CloudflareRuleset, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/phases/%s/entrypoint", c.baseURL, zoneID, phase)
 
@@ -42,12 +52,17 @@ func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entrypoint ruleset: %w", err)
 	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			c.logger.Warn("Failed to close response body", "error", closeErr)
+		}
+	}()
 
-	if resp.StatusCode == 404 {
-		return nil, nil // Entrypoint doesn't exist
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil // Entrypoint doesn't exist.
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
@@ -70,7 +85,7 @@ func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string)
 	return &ruleset, nil
 }
 
-// CreateEntrypointRuleset creates a new entrypoint ruleset for the given zone and phase
+// CreateEntrypointRuleset creates a new entrypoint ruleset for the given zone and phase.
 func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase string) (*types.CloudflareRuleset, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets", c.baseURL, zoneID)
 
@@ -85,8 +100,13 @@ func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entrypoint ruleset: %w", err)
 	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			c.logger.Warn("Failed to close response body", "error", closeErr)
+		}
+	}()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
@@ -109,7 +129,7 @@ func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase stri
 	return &ruleset, nil
 }
 
-// AddRule adds a new rule to the given ruleset
+// AddRule adds a new rule to the given ruleset.
 func (c *Client) AddRule(ctx context.Context, zoneID, rulesetID string, rule types.CloudflareRule) (*types.CloudflareRule, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules", c.baseURL, zoneID, rulesetID)
 
@@ -117,8 +137,13 @@ func (c *Client) AddRule(ctx context.Context, zoneID, rulesetID string, rule typ
 	if err != nil {
 		return nil, fmt.Errorf("failed to add rule: %w", err)
 	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			c.logger.Warn("Failed to close response body", "error", closeErr)
+		}
+	}()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
@@ -141,7 +166,7 @@ func (c *Client) AddRule(ctx context.Context, zoneID, rulesetID string, rule typ
 	return &createdRule, nil
 }
 
-// UpdateRule updates an existing rule
+// UpdateRule updates an existing rule.
 func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID string, updates map[string]interface{}) (*types.CloudflareRule, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules/%s", c.baseURL, zoneID, rulesetID, ruleID)
 
@@ -149,8 +174,13 @@ func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to update rule: %w", err)
 	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			c.logger.Warn("Failed to close response body", "error", closeErr)
+		}
+	}()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
@@ -173,7 +203,7 @@ func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID strin
 	return &updatedRule, nil
 }
 
-// FindRuleByDescription finds a rule in the ruleset by its description
+// FindRuleByDescription finds a rule in the ruleset by its description.
 func FindRuleByDescription(ruleset *types.CloudflareRuleset, description string) *types.CloudflareRule {
 	for i := range ruleset.Rules {
 		if ruleset.Rules[i].Description == description {
@@ -183,7 +213,7 @@ func FindRuleByDescription(ruleset *types.CloudflareRuleset, description string)
 	return nil
 }
 
-// makeRequest makes an HTTP request to the Cloudflare API with retry logic
+// makeRequest makes an HTTP request to the Cloudflare API with retry logic.
 func (c *Client) makeRequest(ctx context.Context, method, url string, payload interface{}) (*http.Response, error) {
 	var body io.Reader
 	if payload != nil {
@@ -202,15 +232,14 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Add request ID for logging
+	// Add request ID for logging.
 	reqID := fmt.Sprintf("cf-%d", time.Now().UnixNano())
 	req.Header.Set("X-Request-ID", reqID)
 
 	start := time.Now()
 
-	// Simple retry logic for rate limiting
+	// Simple retry logic for rate limiting.
 	var resp *http.Response
-	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
@@ -221,12 +250,12 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 			continue
 		}
 
-		// Handle rate limiting
-		if resp.StatusCode == 429 {
+		// Handle rate limiting.
+		if resp.StatusCode == http.StatusTooManyRequests {
 			retryAfter := resp.Header.Get("Retry-After")
 			if retryAfter != "" {
 				if seconds, parseErr := strconv.Atoi(retryAfter); parseErr == nil {
-					if seconds <= 60 { // Don't wait more than 60 seconds
+					if seconds <= maxRetryWaitSeconds { // Don't wait more than 60 seconds.
 						if err := resp.Body.Close(); err != nil {
 							c.logger.Warn("Failed to close response body", "error", err)
 						}
@@ -242,7 +271,7 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 			if err := resp.Body.Close(); err != nil {
 				c.logger.Warn("Failed to close response body", "error", err)
 			}
-			return nil, fmt.Errorf("rate limited and retry would take too long")
+			return nil, errors.New("rate limited and retry would take too long")
 		}
 
 		break

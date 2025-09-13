@@ -16,7 +16,7 @@ func TestGenerateToken(t *testing.T) {
 		t.Error("expected non-empty token")
 	}
 
-	// Test that tokens are different
+	// Test that tokens are different.
 	token2, err := generateToken()
 	if err != nil {
 		t.Fatalf("unexpected error generating second token: %v", err)
@@ -26,7 +26,7 @@ func TestGenerateToken(t *testing.T) {
 		t.Error("expected different tokens on subsequent calls")
 	}
 
-	// Test minimum length (base64 encoded 32 bytes should be at least 43 characters)
+	// Test minimum length (base64 encoded 32 bytes should be at least 43 characters).
 	if len(token) < 43 {
 		t.Errorf("expected token length >= 43, got %d", len(token))
 	}
@@ -48,28 +48,28 @@ func TestClientConstants(t *testing.T) {
 
 func TestNewClient(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelError, // Suppress logs during tests
+		Level: slog.LevelError, // Suppress logs during tests.
 	}))
 
-	// This test would require a real Kubernetes cluster or mock
-	// For now, we'll test that it fails gracefully when not in-cluster
+	// This test would require a real Kubernetes cluster or mock.
+	// For now, we'll test that it fails gracefully when not in-cluster.
 	_, err := NewClient("test-namespace", logger)
 	if err == nil {
 		t.Skip("skipping test - appears to be running in a Kubernetes cluster")
 	}
 
-	// When not in cluster, should return an error
+	// When not in cluster, should return an error.
 	if err == nil {
 		t.Error("expected error when not running in Kubernetes cluster")
 	}
 }
 
-// MockKubernetesTest would be used with a mock Kubernetes client
-// This is left as a placeholder for more comprehensive testing
+// MockKubernetesTest would be used with a mock Kubernetes client.
+// This is left as a placeholder for more comprehensive testing.
 func TestEnsureAuthSecretMock(t *testing.T) {
 	t.Skip("Mock Kubernetes testing not implemented - would require kubernetes/client-go test framework")
 
-	// In a real implementation, this would:
+	// In a real implementation, this would:.
 	// 1. Create a mock clientset
 	// 2. Test secret creation
 	// 3. Test secret retrieval

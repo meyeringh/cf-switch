@@ -2,6 +2,7 @@ package reconcile
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -11,7 +12,12 @@ import (
 	"github.com/meyeringh/cf-switch/pkg/types"
 )
 
-// Reconciler manages the Cloudflare WAF Custom Rule
+const (
+	// Timeout for individual reconciliation operations.
+	reconcileTimeout = 60 * time.Second
+)
+
+// Reconciler manages the Cloudflare WAF Custom Rule.
 type Reconciler struct {
 	cfClient    *cloudflare.Client
 	config      *types.Config
@@ -23,7 +29,7 @@ type Reconciler struct {
 	stoppedCh   chan struct{}
 }
 
-// NewReconciler creates a new reconciler
+// NewReconciler creates a new reconciler.
 func NewReconciler(cfClient *cloudflare.Client, config *types.Config, logger *slog.Logger) *Reconciler {
 	return &Reconciler{
 		cfClient:  cfClient,
@@ -34,45 +40,45 @@ func NewReconciler(cfClient *cloudflare.Client, config *types.Config, logger *sl
 	}
 }
 
-// Start begins the reconciliation process
+// Start begins the reconciliation process.
 func (r *Reconciler) Start(ctx context.Context) error {
-	// Initial reconciliation
+	// Initial reconciliation.
 	if err := r.reconcileOnce(ctx); err != nil {
 		return fmt.Errorf("initial reconciliation failed: %w", err)
 	}
 
-	// Start periodic reconciliation
+	// Start periodic reconciliation.
 	go r.reconcileLoop()
 	return nil
 }
 
-// Stop stops the reconciliation process
+// Stop stops the reconciliation process.
 func (r *Reconciler) Stop() {
 	close(r.stopCh)
 	<-r.stoppedCh
 }
 
-// GetCurrentRule returns the current rule state
-func (r *Reconciler) GetCurrentRule(ctx context.Context) (*types.Rule, error) {
+// GetCurrentRule returns the current rule state.
+func (r *Reconciler) GetCurrentRule(_ context.Context) (*types.Rule, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
 	if r.currentRule == nil {
-		return nil, fmt.Errorf("no rule available")
+		return nil, errors.New("no rule available")
 	}
 
-	// Return a copy to avoid external modifications
+	// Return a copy to avoid external modifications.
 	rule := *r.currentRule
 	return &rule, nil
 }
 
-// ToggleRule enables or disables the rule
+// ToggleRule enables or disables the rule.
 func (r *Reconciler) ToggleRule(ctx context.Context, enabled bool) (*types.Rule, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	if r.currentRule == nil || r.rulesetID == "" {
-		return nil, fmt.Errorf("rule not initialized")
+		return nil, errors.New("rule not initialized")
 	}
 
 	updates := map[string]interface{}{
@@ -84,7 +90,7 @@ func (r *Reconciler) ToggleRule(ctx context.Context, enabled bool) (*types.Rule,
 		return nil, fmt.Errorf("failed to update rule: %w", err)
 	}
 
-	// Update cached rule
+	// Update cached rule.
 	r.currentRule.Enabled = updatedRule.Enabled
 	r.currentRule.Version = updatedRule.Version
 
@@ -97,22 +103,22 @@ func (r *Reconciler) ToggleRule(ctx context.Context, enabled bool) (*types.Rule,
 	return &rule, nil
 }
 
-// UpdateHosts updates the hostnames in the rule
+// UpdateHosts updates the hostnames in the rule.
 func (r *Reconciler) UpdateHosts(ctx context.Context, hostnames []string) (*types.Rule, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	if r.currentRule == nil || r.rulesetID == "" {
-		return nil, fmt.Errorf("rule not initialized")
+		return nil, errors.New("rule not initialized")
 	}
 
-	// Normalize hostnames
+	// Normalize hostnames.
 	normalizedHosts := types.ParseHostnames(fmt.Sprintf("%v", hostnames))
 	if len(normalizedHosts) == 0 {
-		return nil, fmt.Errorf("no valid hostnames provided")
+		return nil, errors.New("no valid hostnames provided")
 	}
 
-	// Build new expression
+	// Build new expression.
 	expression := types.BuildExpression(normalizedHosts)
 
 	updates := map[string]interface{}{
@@ -124,7 +130,7 @@ func (r *Reconciler) UpdateHosts(ctx context.Context, hostnames []string) (*type
 		return nil, fmt.Errorf("failed to update rule expression: %w", err)
 	}
 
-	// Update cached rule
+	// Update cached rule.
 	r.currentRule.Expression = updatedRule.Expression
 	r.currentRule.Hostnames = normalizedHosts
 	r.currentRule.Version = updatedRule.Version
@@ -139,7 +145,7 @@ func (r *Reconciler) UpdateHosts(ctx context.Context, hostnames []string) (*type
 	return &rule, nil
 }
 
-// reconcileLoop runs the periodic reconciliation
+// reconcileLoop runs the periodic reconciliation.
 func (r *Reconciler) reconcileLoop() {
 	defer close(r.stoppedCh)
 
@@ -152,7 +158,7 @@ func (r *Reconciler) reconcileLoop() {
 			r.logger.Info("Reconciliation loop stopped")
 			return
 		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), reconcileTimeout)
 			if err := r.reconcileOnce(ctx); err != nil {
 				r.logger.Error("Reconciliation failed", "error", err)
 			}
@@ -161,11 +167,11 @@ func (r *Reconciler) reconcileLoop() {
 	}
 }
 
-// reconcileOnce performs a single reconciliation
+// reconcileOnce performs a single reconciliation.
 func (r *Reconciler) reconcileOnce(ctx context.Context) error {
 	r.logger.Debug("Starting reconciliation")
 
-	// Get or create entrypoint ruleset
+	// Get or create entrypoint ruleset.
 	ruleset, err := r.ensureEntrypointRuleset(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to ensure entrypoint ruleset: %w", err)
@@ -175,7 +181,7 @@ func (r *Reconciler) reconcileOnce(ctx context.Context) error {
 	r.rulesetID = ruleset.ID
 	r.mutex.Unlock()
 
-	// Ensure our rule exists and is up to date
+	// Ensure our rule exists and is up to date.
 	if err := r.ensureRule(ctx, ruleset); err != nil {
 		return fmt.Errorf("failed to ensure rule: %w", err)
 	}
@@ -184,11 +190,11 @@ func (r *Reconciler) reconcileOnce(ctx context.Context) error {
 	return nil
 }
 
-// ensureEntrypointRuleset ensures the entrypoint ruleset exists
+// ensureEntrypointRuleset ensures the entrypoint ruleset exists.
 func (r *Reconciler) ensureEntrypointRuleset(ctx context.Context) (*types.CloudflareRuleset, error) {
 	phase := types.HTTPRequestFirewallCustomPhase
 
-	// Try to get existing entrypoint
+	// Try to get existing entrypoint.
 	ruleset, err := r.cfClient.GetEntrypointRuleset(ctx, r.config.CloudflareZoneID, phase)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entrypoint ruleset: %w", err)
@@ -199,7 +205,7 @@ func (r *Reconciler) ensureEntrypointRuleset(ctx context.Context) (*types.Cloudf
 		return ruleset, nil
 	}
 
-	// Create entrypoint ruleset
+	// Create entrypoint ruleset.
 	r.logger.Info("Creating entrypoint ruleset", "phase", phase)
 	ruleset, err = r.cfClient.CreateEntrypointRuleset(ctx, r.config.CloudflareZoneID, phase)
 	if err != nil {
@@ -210,16 +216,16 @@ func (r *Reconciler) ensureEntrypointRuleset(ctx context.Context) (*types.Cloudf
 	return ruleset, nil
 }
 
-// ensureRule ensures our rule exists and is configured correctly
+// ensureRule ensures our rule exists and is configured correctly.
 func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRuleset) error {
-	// Look for existing rule
+	// Look for existing rule.
 	existingRule := cloudflare.FindRuleByDescription(ruleset, types.RuleDescription)
 
-	// Build expected expression
+	// Build expected expression.
 	expectedExpression := types.BuildExpression(r.config.DestHostnames)
 
 	if existingRule == nil {
-		// Create new rule
+		// Create new rule.
 		rule := types.CloudflareRule{
 			Action:      types.BlockAction,
 			Expression:  expectedExpression,
@@ -251,7 +257,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 		return nil
 	}
 
-	// Update existing rule if needed
+	// Update existing rule if needed.
 	needsUpdate := false
 	updates := make(map[string]interface{})
 
@@ -286,7 +292,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 			"expression", updatedRule.Expression,
 			"version", updatedRule.Version)
 	} else {
-		// No update needed, just cache current state
+		// No update needed, just cache current state.
 		r.mutex.Lock()
 		r.currentRule = &types.Rule{
 			ID:          existingRule.ID,

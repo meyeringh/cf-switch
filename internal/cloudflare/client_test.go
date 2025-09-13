@@ -140,7 +140,7 @@ func TestClient_CreateEntrypointRuleset(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 
-		// Verify request body structure
+		// Verify request body structure.
 		var req map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Errorf("failed to decode request: %v", err)
@@ -192,7 +192,7 @@ func TestClient_AddRule(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 
-		// Verify request body
+		// Verify request body.
 		var req types.CloudflareRule
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Errorf("failed to decode request: %v", err)
@@ -255,7 +255,7 @@ func TestClient_UpdateRule(t *testing.T) {
 			t.Errorf("expected PATCH, got %s", r.Method)
 		}
 
-		// Verify request body
+		// Verify request body.
 		var req map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Errorf("failed to decode request: %v", err)

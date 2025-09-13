@@ -13,7 +13,7 @@ import (
 	"github.com/meyeringh/cf-switch/pkg/types"
 )
 
-// MockReconciler implements RuleReconciler for testing
+// MockReconciler implements RuleReconciler for testing.
 type MockReconciler struct {
 	rule          *types.Rule
 	toggleErr     error
@@ -63,13 +63,13 @@ func (m *MockReconciler) UpdateHosts(ctx context.Context, hostnames []string) (*
 
 func TestAuthMiddleware(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelError, // Suppress logs during tests
+		Level: slog.LevelError, // Suppress logs during tests.
 	}))
 
 	token := "test-token"
 	middleware := NewAuthMiddleware(token, logger)
 
-	// Create a test handler
+	// Create a test handler.
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("authorized"))
@@ -154,7 +154,7 @@ func TestAuthMiddleware(t *testing.T) {
 					t.Errorf("expected body %q, got %q", tt.expectedBody, rr.Body.String())
 				}
 			} else {
-				// Check error response structure
+				// Check error response structure.
 				var errorResp ErrorResponse
 				if err := json.Unmarshal(rr.Body.Bytes(), &errorResp); err != nil {
 					t.Fatalf("failed to unmarshal error response: %v", err)
@@ -359,7 +359,7 @@ func TestHealthHandler(t *testing.T) {
 	})
 }
 
-// MockError implements error interface for testing
+// MockError implements error interface for testing.
 type MockError struct {
 	message string
 }

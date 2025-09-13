@@ -24,7 +24,7 @@ func TestParseHostnames(t *testing.T) {
 		{
 			name:     "multiple hostnames",
 			input:    "example.com,test.org,demo.net",
-			expected: []string{"demo.net", "example.com", "test.org"}, // sorted
+			expected: []string{"demo.net", "example.com", "test.org"}, // sorted.
 		},
 		{
 			name:     "hostnames with spaces",
@@ -102,12 +102,12 @@ func TestBuildExpression(t *testing.T) {
 }
 
 func TestLoadConfig(t *testing.T) {
-	// Save original env vars
+	// Save original env vars.
 	originalHostnames := os.Getenv("DEST_HOSTNAMES")
 	originalZoneID := os.Getenv("CLOUDFLARE_ZONE_ID")
 	originalAPIToken := os.Getenv("CLOUDFLARE_API_TOKEN")
 
-	// Cleanup function
+	// Cleanup function.
 	defer func() {
 		setEnv("DEST_HOSTNAMES", originalHostnames)
 		setEnv("CLOUDFLARE_ZONE_ID", originalZoneID)
@@ -115,7 +115,7 @@ func TestLoadConfig(t *testing.T) {
 	}()
 
 	t.Run("missing required fields", func(t *testing.T) {
-		// Clear all env vars
+		// Clear all env vars.
 		setEnv("DEST_HOSTNAMES", "")
 		setEnv("CLOUDFLARE_ZONE_ID", "")
 		setEnv("CLOUDFLARE_API_TOKEN", "")
@@ -196,7 +196,7 @@ func TestLoadConfig(t *testing.T) {
 	})
 }
 
-// Helper functions for testing
+// Helper functions for testing.
 func clearEnv() {
 	os.Unsetenv("CLOUDFLARE_ZONE_ID")
 	os.Unsetenv("CLOUDFLARE_API_TOKEN")

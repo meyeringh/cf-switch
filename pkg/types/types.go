@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -9,24 +10,24 @@ import (
 	"time"
 )
 
-// Config holds all application configuration
+// Config holds all application configuration.
 type Config struct {
-	// Cloudflare configuration
+	// Cloudflare configuration.
 	CloudflareZoneID     string   `json:"cloudflare_zone_id"`
-	CloudflareAPIToken   string   `json:"-"` // Never log this
+	CloudflareAPIToken   string   `json:"-"` // Never log this.
 	DestHostnames        []string `json:"dest_hostnames"`
 	CFRuleDefaultEnabled bool     `json:"cf_rule_default_enabled"`
 
-	// Server configuration
+	// Server configuration.
 	HTTPAddr          string        `json:"http_addr"`
 	ReconcileInterval time.Duration `json:"reconcile_interval"`
 
-	// Kubernetes configuration (derived from environment)
+	// Kubernetes configuration (derived from environment).
 	Namespace          string `json:"namespace"`
 	ServiceAccountName string `json:"service_account_name"`
 }
 
-// Rule represents the Cloudflare WAF Custom Rule
+// Rule represents the Cloudflare WAF Custom Rule.
 type Rule struct {
 	ID          string   `json:"rule_id"`
 	Enabled     bool     `json:"enabled"`
@@ -36,17 +37,17 @@ type Rule struct {
 	Version     int      `json:"version"`
 }
 
-// ToggleRequest represents the request to enable/disable the rule
+// ToggleRequest represents the request to enable/disable the rule.
 type ToggleRequest struct {
 	Enabled bool `json:"enabled"`
 }
 
-// UpdateHostsRequest represents the request to update hostnames
+// UpdateHostsRequest represents the request to update hostnames.
 type UpdateHostsRequest struct {
 	Hostnames []string `json:"hostnames"`
 }
 
-// RuleResponse represents the response for rule status
+// RuleResponse represents the response for rule status.
 type RuleResponse struct {
 	RuleID      string   `json:"rule_id"`
 	Enabled     bool     `json:"enabled"`
@@ -56,7 +57,7 @@ type RuleResponse struct {
 	Version     int      `json:"version"`
 }
 
-// CloudflareRuleset represents a Cloudflare ruleset
+// CloudflareRuleset represents a Cloudflare ruleset.
 type CloudflareRuleset struct {
 	ID          string           `json:"id"`
 	Name        string           `json:"name"`
@@ -66,7 +67,7 @@ type CloudflareRuleset struct {
 	Rules       []CloudflareRule `json:"rules"`
 }
 
-// CloudflareRule represents a single Cloudflare rule
+// CloudflareRule represents a single Cloudflare rule.
 type CloudflareRule struct {
 	ID          string `json:"id"`
 	Action      string `json:"action"`
@@ -76,20 +77,20 @@ type CloudflareRule struct {
 	Version     int    `json:"version,omitempty"`
 }
 
-// CloudflareAPIError represents an error response from Cloudflare API
+// CloudflareAPIError represents an error response from Cloudflare API.
 type CloudflareAPIError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-// CloudflareAPIResponse represents a generic Cloudflare API response
+// CloudflareAPIResponse represents a generic Cloudflare API response.
 type CloudflareAPIResponse struct {
 	Success bool                 `json:"success"`
 	Errors  []CloudflareAPIError `json:"errors"`
 	Result  interface{}          `json:"result"`
 }
 
-// LoadConfig loads configuration from environment variables
+// LoadConfig loads configuration from environment variables.
 func LoadConfig() (*Config, error) {
 	config := &Config{
 		HTTPAddr:             getEnvOrDefault("HTTP_ADDR", ":8080"),
@@ -98,28 +99,28 @@ func LoadConfig() (*Config, error) {
 		ServiceAccountName:   getEnvOrDefault("KUBERNETES_SERVICE_ACCOUNT", "cf-switch"),
 	}
 
-	// Parse required fields
+	// Parse required fields.
 	config.CloudflareZoneID = os.Getenv("CLOUDFLARE_ZONE_ID")
 	if config.CloudflareZoneID == "" {
-		return nil, fmt.Errorf("CLOUDFLARE_ZONE_ID is required")
+		return nil, errors.New("CLOUDFLARE_ZONE_ID is required")
 	}
 
 	config.CloudflareAPIToken = os.Getenv("CLOUDFLARE_API_TOKEN")
 	if config.CloudflareAPIToken == "" {
-		return nil, fmt.Errorf("CLOUDFLARE_API_TOKEN is required")
+		return nil, errors.New("CLOUDFLARE_API_TOKEN is required")
 	}
 
 	destHostnamesStr := os.Getenv("DEST_HOSTNAMES")
 	if destHostnamesStr == "" {
-		return nil, fmt.Errorf("DEST_HOSTNAMES is required")
+		return nil, errors.New("DEST_HOSTNAMES is required")
 	}
 
 	config.DestHostnames = ParseHostnames(destHostnamesStr)
 	if len(config.DestHostnames) == 0 {
-		return nil, fmt.Errorf("DEST_HOSTNAMES must contain at least one hostname")
+		return nil, errors.New("DEST_HOSTNAMES must contain at least one hostname")
 	}
 
-	// Parse reconcile interval
+	// Parse reconcile interval.
 	reconcileIntervalStr := getEnvOrDefault("RECONCILE_INTERVAL", "60s")
 	interval, err := time.ParseDuration(reconcileIntervalStr)
 	if err != nil {
@@ -130,7 +131,7 @@ func LoadConfig() (*Config, error) {
 	return config, nil
 }
 
-// ParseHostnames parses and normalizes a comma-separated list of hostnames
+// ParseHostnames parses and normalizes a comma-separated list of hostnames.
 func ParseHostnames(hostnames string) []string {
 	if hostnames == "" {
 		return nil
@@ -147,12 +148,12 @@ func ParseHostnames(hostnames string) []string {
 		}
 	}
 
-	// Sort for consistent ordering
+	// Sort for consistent ordering.
 	sort.Strings(result)
 	return result
 }
 
-// BuildExpression builds a Cloudflare expression for the given hostnames
+// BuildExpression builds a Cloudflare expression for the given hostnames.
 func BuildExpression(hostnames []string) string {
 	if len(hostnames) == 0 {
 		return "false"
@@ -167,7 +168,7 @@ func BuildExpression(hostnames []string) string {
 	return fmt.Sprintf(`http.host in {%s}`, strings.Join(quoted, " "))
 }
 
-// getEnvOrDefault returns the environment variable value or a default
+// getEnvOrDefault returns the environment variable value or a default.
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -175,7 +176,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-// getEnvBoolOrDefault returns the environment variable as a boolean or a default
+// getEnvBoolOrDefault returns the environment variable as a boolean or a default.
 func getEnvBoolOrDefault(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
 		if parsed, err := strconv.ParseBool(value); err == nil {
@@ -186,12 +187,12 @@ func getEnvBoolOrDefault(key string, defaultValue bool) bool {
 }
 
 const (
-	// RuleDescription is the description used for the managed rule
+	// RuleDescription is the description used for the managed rule.
 	RuleDescription = "cf-switch:global"
 
-	// Phase for Cloudflare WAF Custom Rules
+	// Phase for Cloudflare WAF Custom Rules.
 	HTTPRequestFirewallCustomPhase = "http_request_firewall_custom"
 
-	// Action for blocking requests
+	// Action for blocking requests.
 	BlockAction = "block"
 )

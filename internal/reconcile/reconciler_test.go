@@ -57,7 +57,7 @@ func TestReconciler_ConfigAccess(t *testing.T) {
 	client := cloudflare.NewClient("test-token", logger)
 	reconciler := NewReconciler(client, config, logger)
 
-	// Test that config is accessible and correct
+	// Test that config is accessible and correct.
 	if reconciler.config.CloudflareZoneID != "test-zone-123" {
 		t.Errorf("expected zone ID %q, got %q", "test-zone-123", reconciler.config.CloudflareZoneID)
 	}
@@ -85,7 +85,7 @@ func TestReconciler_StopChannels(t *testing.T) {
 	client := cloudflare.NewClient("test-token", logger)
 	reconciler := NewReconciler(client, config, logger)
 
-	// Test that stop channels are initialized
+	// Test that stop channels are initialized.
 	if reconciler.stopCh == nil {
 		t.Error("stopCh should be initialized")
 	}
@@ -94,15 +94,15 @@ func TestReconciler_StopChannels(t *testing.T) {
 		t.Error("stoppedCh should be initialized")
 	}
 
-	// Test that we can close the stopCh without panic
+	// Test that we can close the stopCh without panic.
 	select {
 	case reconciler.stopCh <- struct{}{}:
 		t.Error("stopCh should be unbuffered and block")
 	default:
-		// Expected behavior - channel should block since nothing is reading
+		// Expected behavior - channel should block since nothing is reading.
 	}
 
-	// Test that the channels are properly typed
+	// Test that the channels are properly typed.
 	var stopCh chan struct{} = reconciler.stopCh
 	var stoppedCh chan struct{} = reconciler.stoppedCh
 
