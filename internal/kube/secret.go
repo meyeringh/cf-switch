@@ -16,7 +16,7 @@ import (
 
 const (
 	// SecretName is the name of the secret containing the API token
-	SecretName = "cf-switch-auth"
+	SecretName = "cf-switch-auth" // #nosec G101 -- This is a secret name, not a credential
 	// TokenKey is the key in the secret data containing the token
 	TokenKey = "apiToken"
 	// TokenLength is the length of the generated token in bytes

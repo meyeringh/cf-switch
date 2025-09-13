@@ -227,7 +227,9 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 			if retryAfter != "" {
 				if seconds, parseErr := strconv.Atoi(retryAfter); parseErr == nil {
 					if seconds <= 60 { // Don't wait more than 60 seconds
-						resp.Body.Close()
+						if err := resp.Body.Close(); err != nil {
+							c.logger.Warn("Failed to close response body", "error", err)
+						}
 						c.logger.Warn("Rate limited, retrying",
 							"attempt", attempt+1,
 							"retry_after", seconds,
@@ -237,7 +239,9 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 					}
 				}
 			}
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				c.logger.Warn("Failed to close response body", "error", err)
+			}
 			return nil, fmt.Errorf("rate limited and retry would take too long")
 		}
 
