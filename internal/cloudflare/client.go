@@ -1,0 +1,256 @@
+package cloudflare
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/meyeringh/cf-switch/pkg/types"
+)
+
+// Client represents a Cloudflare API client
+type Client struct {
+	httpClient *http.Client
+	baseURL    string
+	apiToken   string
+	logger     *slog.Logger
+}
+
+// NewClient creates a new Cloudflare API client
+func NewClient(apiToken string, logger *slog.Logger) *Client {
+	return &Client{
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		baseURL:  "https://api.cloudflare.com/client/v4",
+		apiToken: apiToken,
+		logger:   logger,
+	}
+}
+
+// GetEntrypointRuleset gets the entrypoint ruleset for the given zone and phase
+func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string) (*types.CloudflareRuleset, error) {
+	url := fmt.Sprintf("%s/zones/%s/rulesets/phases/%s/entrypoint", c.baseURL, zoneID, phase)
+
+	resp, err := c.makeRequest(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get entrypoint ruleset: %w", err)
+	}
+
+	if resp.StatusCode == 404 {
+		return nil, nil // Entrypoint doesn't exist
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var apiResp types.CloudflareAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if !apiResp.Success {
+		return nil, fmt.Errorf("API error: %v", apiResp.Errors)
+	}
+
+	var ruleset types.CloudflareRuleset
+	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	} else if err := json.Unmarshal(resultBytes, &ruleset); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal ruleset: %w", err)
+	}
+
+	return &ruleset, nil
+}
+
+// CreateEntrypointRuleset creates a new entrypoint ruleset for the given zone and phase
+func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase string) (*types.CloudflareRuleset, error) {
+	url := fmt.Sprintf("%s/zones/%s/rulesets", c.baseURL, zoneID)
+
+	payload := map[string]interface{}{
+		"kind":        "zone",
+		"phase":       phase,
+		"name":        fmt.Sprintf("%s entrypoint", phase),
+		"description": fmt.Sprintf("Managed by cf-switch for %s phase", phase),
+	}
+
+	resp, err := c.makeRequest(ctx, "POST", url, payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create entrypoint ruleset: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var apiResp types.CloudflareAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if !apiResp.Success {
+		return nil, fmt.Errorf("API error: %v", apiResp.Errors)
+	}
+
+	var ruleset types.CloudflareRuleset
+	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	} else if err := json.Unmarshal(resultBytes, &ruleset); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal ruleset: %w", err)
+	}
+
+	return &ruleset, nil
+}
+
+// AddRule adds a new rule to the given ruleset
+func (c *Client) AddRule(ctx context.Context, zoneID, rulesetID string, rule types.CloudflareRule) (*types.CloudflareRule, error) {
+	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules", c.baseURL, zoneID, rulesetID)
+
+	resp, err := c.makeRequest(ctx, "POST", url, rule)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add rule: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var apiResp types.CloudflareAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if !apiResp.Success {
+		return nil, fmt.Errorf("API error: %v", apiResp.Errors)
+	}
+
+	var createdRule types.CloudflareRule
+	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	} else if err := json.Unmarshal(resultBytes, &createdRule); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal rule: %w", err)
+	}
+
+	return &createdRule, nil
+}
+
+// UpdateRule updates an existing rule
+func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID string, updates map[string]interface{}) (*types.CloudflareRule, error) {
+	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules/%s", c.baseURL, zoneID, rulesetID, ruleID)
+
+	resp, err := c.makeRequest(ctx, "PATCH", url, updates)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update rule: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var apiResp types.CloudflareAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if !apiResp.Success {
+		return nil, fmt.Errorf("API error: %v", apiResp.Errors)
+	}
+
+	var updatedRule types.CloudflareRule
+	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	} else if err := json.Unmarshal(resultBytes, &updatedRule); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal rule: %w", err)
+	}
+
+	return &updatedRule, nil
+}
+
+// FindRuleByDescription finds a rule in the ruleset by its description
+func FindRuleByDescription(ruleset *types.CloudflareRuleset, description string) *types.CloudflareRule {
+	for i := range ruleset.Rules {
+		if ruleset.Rules[i].Description == description {
+			return &ruleset.Rules[i]
+		}
+	}
+	return nil
+}
+
+// makeRequest makes an HTTP request to the Cloudflare API with retry logic
+func (c *Client) makeRequest(ctx context.Context, method, url string, payload interface{}) (*http.Response, error) {
+	var body io.Reader
+	if payload != nil {
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal payload: %w", err)
+		}
+		body = bytes.NewReader(jsonData)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Add request ID for logging
+	reqID := fmt.Sprintf("cf-%d", time.Now().UnixNano())
+	req.Header.Set("X-Request-ID", reqID)
+
+	start := time.Now()
+
+	// Simple retry logic for rate limiting
+	var resp *http.Response
+	maxRetries := 3
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			if attempt == maxRetries-1 {
+				return nil, fmt.Errorf("request failed after %d attempts: %w", maxRetries, err)
+			}
+			time.Sleep(time.Duration(attempt+1) * time.Second)
+			continue
+		}
+
+		// Handle rate limiting
+		if resp.StatusCode == 429 {
+			retryAfter := resp.Header.Get("Retry-After")
+			if retryAfter != "" {
+				if seconds, parseErr := strconv.Atoi(retryAfter); parseErr == nil {
+					if seconds <= 60 { // Don't wait more than 60 seconds
+						resp.Body.Close()
+						c.logger.Warn("Rate limited, retrying",
+							"attempt", attempt+1,
+							"retry_after", seconds,
+							"request_id", reqID)
+						time.Sleep(time.Duration(seconds) * time.Second)
+						continue
+					}
+				}
+			}
+			resp.Body.Close()
+			return nil, fmt.Errorf("rate limited and retry would take too long")
+		}
+
+		break
+	}
+
+	duration := time.Since(start)
+	c.logger.Debug("Cloudflare API request completed",
+		"method", method,
+		"url", url,
+		"status", resp.StatusCode,
+		"duration_ms", duration.Milliseconds(),
+		"request_id", reqID)
+
+	return resp, nil
+}

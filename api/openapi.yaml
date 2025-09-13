@@ -1,0 +1,288 @@
+openapi: 3.1.0
+info:
+  title: CF-Switch API
+  description: |
+    API for managing Cloudflare WAF Custom Rules through cf-switch service.
+    This service manages a single Cloudflare rule that blocks traffic to configured hostnames.
+    
+    All `/v1/*` endpoints require Bearer token authentication.
+    The token is automatically generated and stored in the `cf-switch-auth` Kubernetes secret.
+  version: v0.1.0
+  contact:
+    name: CF-Switch Support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: http://cf-switch:8080
+    description: Kubernetes service
+
+security:
+  - bearerAuth: []
+
+paths:
+  /healthz:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the service
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+  /readyz:
+    get:
+      summary: Readiness check endpoint
+      description: Returns whether the service is ready to accept requests
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ready"
+
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      description: Returns Prometheus metrics for monitoring
+      tags:
+        - Monitoring
+      security: []
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /v1/rule:
+    get:
+      summary: Get current rule status
+      description: |
+        Returns the current state of the managed Cloudflare WAF Custom Rule,
+        including its ID, enabled state, expression, and configured hostnames.
+      tags:
+        - Rule Management
+      responses:
+        '200':
+          description: Current rule status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/rule/enable:
+    post:
+      summary: Enable or disable the rule
+      description: |
+        Toggles the Cloudflare WAF Custom Rule between enabled and disabled states.
+        When enabled, the rule will block traffic to all configured hostnames.
+      tags:
+        - Rule Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToggleRequest'
+      responses:
+        '200':
+          description: Rule toggle successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/rule/hosts:
+    put:
+      summary: Update rule hostnames
+      description: |
+        Replaces the list of hostnames that the rule applies to.
+        This updates the Cloudflare rule expression to match the new hostname list.
+        Hostnames are automatically normalized (lowercased, deduplicated, sorted).
+      tags:
+        - Rule Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHostsRequest'
+      responses:
+        '200':
+          description: Hostnames updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Bearer token authentication required for all /v1/* endpoints.
+        Token is stored in the `cf-switch-auth` Kubernetes secret.
+        
+        To retrieve the token:
+        ```
+        kubectl -n <namespace> get secret cf-switch-auth -o jsonpath='{.data.apiToken}' | base64 -d
+        ```
+
+  schemas:
+    RuleResponse:
+      type: object
+      description: Response containing the current rule state
+      required:
+        - rule_id
+        - enabled
+        - expression
+        - hostnames
+        - description
+        - version
+      properties:
+        rule_id:
+          type: string
+          description: Cloudflare rule ID
+          example: "12345678-1234-1234-1234-123456789abc"
+        enabled:
+          type: boolean
+          description: Whether the rule is currently enabled
+          example: true
+        expression:
+          type: string
+          description: Cloudflare rule expression
+          example: 'http.host in {"paperless.meyeringh.org" "photos.example.com"}'
+        hostnames:
+          type: array
+          items:
+            type: string
+          description: List of normalized hostnames the rule applies to
+          example: ["paperless.meyeringh.org", "photos.example.com"]
+        description:
+          type: string
+          description: Rule description (always "cf-switch:global")
+          example: "cf-switch:global"
+        version:
+          type: integer
+          description: Rule version number from Cloudflare
+          example: 2
+
+    ToggleRequest:
+      type: object
+      description: Request to enable or disable the rule
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Whether to enable (true) or disable (false) the rule
+          example: true
+
+    UpdateHostsRequest:
+      type: object
+      description: Request to update the list of hostnames
+      required:
+        - hostnames
+      properties:
+        hostnames:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: List of hostnames to apply the rule to
+          example: ["paperless.meyeringh.org", "photos.example.com", "api.example.org"]
+
+    ErrorResponse:
+      type: object
+      description: Error response format
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: HTTP status text
+          example: "Bad Request"
+        message:
+          type: string
+          description: Detailed error message
+          example: "Invalid request body"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Bad Request"
+            message: "Invalid request body"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized"
+            message: "Missing Authorization header"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Internal Server Error"
+            message: "Failed to communicate with Cloudflare API"
+
+tags:
+  - name: Health
+    description: Health and readiness endpoints
+  - name: Monitoring
+    description: Metrics and monitoring endpoints
+  - name: Rule Management
+    description: Operations for managing the Cloudflare WAF Custom Rule

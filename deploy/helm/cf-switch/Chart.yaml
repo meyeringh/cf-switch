@@ -1,0 +1,17 @@
+apiVersion: v2
+name: cf-switch
+description: A Helm chart for CF-Switch - Cloudflare WAF Custom Rule toggle service
+type: application
+version: 0.1.0
+appVersion: "v0.1.0"
+keywords:
+  - cloudflare
+  - waf
+  - security
+  - toggle
+home: https://github.com/meyeringh/cf-switch
+sources:
+  - https://github.com/meyeringh/cf-switch
+maintainers:
+  - name: meyeringh
+    url: https://github.com/meyeringh

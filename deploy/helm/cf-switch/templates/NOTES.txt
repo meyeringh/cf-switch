@@ -1,0 +1,74 @@
+1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "cf-switch.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "cf-switch.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "cf-switch.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "{{ include "cf-switch.selectorLabels" . }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+{{- end }}
+
+2. Retrieve the authentication token for API access:
+
+   kubectl -n {{ .Release.Namespace }} get secret cf-switch-auth -o jsonpath='{.data.apiToken}' | base64 -d; echo
+
+3. Example API usage:
+
+   # Get current rule status
+   TOKEN=$(kubectl -n {{ .Release.Namespace }} get secret cf-switch-auth -o jsonpath='{.data.apiToken}' | base64 -d)
+   curl -H "Authorization: Bearer $TOKEN" http://{{ include "cf-switch.fullname" . }}:{{ .Values.service.port }}/v1/rule
+
+   # Enable the rule (blocks traffic)
+   curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+     -d '{"enabled":true}' http://{{ include "cf-switch.fullname" . }}:{{ .Values.service.port }}/v1/rule/enable
+
+   # Disable the rule (allows traffic)
+   curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+     -d '{"enabled":false}' http://{{ include "cf-switch.fullname" . }}:{{ .Values.service.port }}/v1/rule/enable
+
+   # Update hostnames
+   curl -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+     -d '{"hostnames":["paperless.meyeringh.org","photos.example.com"]}' \
+     http://{{ include "cf-switch.fullname" . }}:{{ .Values.service.port }}/v1/rule/hosts
+
+4. Monitor the service:
+
+   # Check health
+   curl http://{{ include "cf-switch.fullname" . }}:{{ .Values.service.port }}/healthz
+
+   # View metrics
+   curl http://{{ include "cf-switch.fullname" . }}:{{ .Values.service.port }}/metrics
+
+5. Configuration notes:
+
+   - The service manages ONE Cloudflare WAF Custom Rule with description "cf-switch:global"
+   - Rule expression: http.host in {"host1" "host2" ...} for all configured hostnames
+   - Reconciliation runs every {{ .Values.env.RECONCILE_INTERVAL.value | default "60s" }}
+   - Ensure CLOUDFLARE_ZONE_ID and CLOUDFLARE_API_TOKEN are properly configured
+   - The Cloudflare API token requires "Zone:Zone:Read" and "Zone:Zone Settings:Edit" permissions
+
+6. Troubleshooting:
+
+   # View logs
+   kubectl -n {{ .Release.Namespace }} logs -l "{{ include "cf-switch.selectorLabels" . }}" -f
+
+   # Check deployment status
+   kubectl -n {{ .Release.Namespace }} get deployment {{ include "cf-switch.fullname" . }}
+
+   # Verify RBAC permissions
+   kubectl -n {{ .Release.Namespace }} get role,rolebinding
+
+For more information, visit: https://github.com/meyeringh/cf-switch
