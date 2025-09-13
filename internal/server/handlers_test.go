@@ -1,3 +1,4 @@
+//nolint:testpackage // Using same package as implementation to test unexported functions
 package server
 
 import (
@@ -61,6 +62,7 @@ func (m *MockReconciler) UpdateHosts(ctx context.Context, hostnames []string) (*
 	return rule, nil
 }
 
+//nolint:gocognit // Comprehensive authentication middleware test covering multiple scenarios
 func TestAuthMiddleware(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelError, // Suppress logs during tests.

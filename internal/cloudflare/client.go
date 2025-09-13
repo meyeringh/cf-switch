@@ -174,7 +174,11 @@ func (c *Client) AddRule(
 }
 
 // UpdateRule updates an existing rule.
-func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID string, updates map[string]interface{}) (*types.CloudflareRule, error) {
+func (c *Client) UpdateRule(
+	ctx context.Context,
+	zoneID, rulesetID, ruleID string,
+	updates map[string]interface{},
+) (*types.CloudflareRule, error) {
 	url := fmt.Sprintf("%s/zones/%s/rulesets/%s/rules/%s", c.baseURL, zoneID, rulesetID, ruleID)
 
 	resp, err := c.makeRequest(ctx, http.MethodPatch, url, updates)
@@ -221,6 +225,7 @@ func FindRuleByDescription(ruleset *types.CloudflareRuleset, description string)
 }
 
 // makeRequest makes an HTTP request to the Cloudflare API with retry logic.
+//nolint:gocognit // Complex retry logic with rate limiting requires multiple conditions
 func (c *Client) makeRequest(ctx context.Context, method, url string, payload interface{}) (*http.Response, error) {
 	var body io.Reader
 	if payload != nil {
@@ -258,6 +263,7 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 		}
 
 		// Handle rate limiting.
+		//nolint:nestif // Rate limiting logic requires nested conditions for proper retry handling
 		if resp.StatusCode == http.StatusTooManyRequests {
 			retryAfter := resp.Header.Get("Retry-After")
 			if retryAfter != "" {

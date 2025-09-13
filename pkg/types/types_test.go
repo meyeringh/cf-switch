@@ -1,3 +1,4 @@
+//nolint:revive // Package name "types" is conventional for this module
 package types
 
 import (

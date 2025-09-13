@@ -1,3 +1,4 @@
+//nolint:testpackage // Using same package as implementation to test unexported functions
 package cloudflare
 
 import (
@@ -32,6 +33,7 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
+//nolint:gocognit // Comprehensive test function covering multiple scenarios and edge cases
 func TestClient_GetEntrypointRuleset(t *testing.T) {
 	tests := []struct {
 		name           string
