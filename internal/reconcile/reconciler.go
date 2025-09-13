@@ -182,8 +182,8 @@ func (r *Reconciler) reconcileOnce(ctx context.Context) error {
 	r.mutex.Unlock()
 
 	// Ensure our rule exists and is up to date.
-	if err := r.ensureRule(ctx, ruleset); err != nil {
-		return fmt.Errorf("failed to ensure rule: %w", err)
+	if ensureErr := r.ensureRule(ctx, ruleset); ensureErr != nil {
+		return fmt.Errorf("failed to ensure rule: %w", ensureErr)
 	}
 
 	r.logger.DebugContext(ctx, "Reconciliation completed successfully")

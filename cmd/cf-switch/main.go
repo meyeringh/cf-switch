@@ -68,8 +68,8 @@ func main() {
 	reconciler := reconcile.NewReconciler(cfClient, config, logger)
 
 	// Start reconciler.
-	if err := reconciler.Start(ctx); err != nil {
-		logger.Error("Failed to start reconciler", "error", err)
+	if startErr := reconciler.Start(ctx); startErr != nil {
+		logger.Error("Failed to start reconciler", "error", startErr)
 		os.Exit(1)
 	}
 
@@ -81,8 +81,8 @@ func main() {
 	// Start HTTP server in a goroutine.
 	serverErr := make(chan error, 1)
 	go func() {
-		if err := httpServer.Start(); err != nil {
-			serverErr <- err
+		if startErr := httpServer.Start(); startErr != nil {
+			serverErr <- startErr
 		}
 	}()
 
@@ -99,9 +99,9 @@ func main() {
 	select {
 	case sig := <-sigCh:
 		logger.Info("Received shutdown signal", "signal", sig)
-	case err := <-serverErr:
-		if err != nil {
-			logger.Error("HTTP server error", "error", err)
+	case serverError := <-serverErr:
+		if serverError != nil {
+			logger.Error("HTTP server error", "error", serverError)
 		}
 	}
 
@@ -117,8 +117,8 @@ func main() {
 	logger.Info("Reconciler stopped")
 
 	// Shutdown HTTP server.
-	if err := httpServer.Shutdown(shutdownCtx); err != nil {
-		logger.Error("Failed to shutdown HTTP server gracefully", "error", err)
+	if shutdownErr := httpServer.Shutdown(shutdownCtx); shutdownErr != nil {
+		logger.Error("Failed to shutdown HTTP server gracefully", "error", shutdownErr)
 	} else {
 		logger.Info("HTTP server stopped")
 	}

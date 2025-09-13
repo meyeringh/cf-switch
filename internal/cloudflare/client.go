@@ -70,8 +70,8 @@ func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string)
 	}
 
 	var apiResp types.CloudflareAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&apiResp); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
 	if !apiResp.Success {
@@ -79,10 +79,10 @@ func (c *Client) GetEntrypointRuleset(ctx context.Context, zoneID, phase string)
 	}
 
 	var ruleset types.CloudflareRuleset
-	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	} else if err := json.Unmarshal(resultBytes, &ruleset); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal ruleset: %w", err)
+	if resultBytes, marshalErr := json.Marshal(apiResp.Result); marshalErr != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", marshalErr)
+	} else if unmarshalErr := json.Unmarshal(resultBytes, &ruleset); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to unmarshal ruleset: %w", unmarshalErr)
 	}
 
 	return &ruleset, nil
@@ -114,8 +114,8 @@ func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase stri
 	}
 
 	var apiResp types.CloudflareAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&apiResp); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
 	if !apiResp.Success {
@@ -123,10 +123,10 @@ func (c *Client) CreateEntrypointRuleset(ctx context.Context, zoneID, phase stri
 	}
 
 	var ruleset types.CloudflareRuleset
-	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	} else if err := json.Unmarshal(resultBytes, &ruleset); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal ruleset: %w", err)
+	if resultBytes, marshalErr := json.Marshal(apiResp.Result); marshalErr != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", marshalErr)
+	} else if unmarshalErr := json.Unmarshal(resultBytes, &ruleset); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to unmarshal ruleset: %w", unmarshalErr)
 	}
 
 	return &ruleset, nil
@@ -155,8 +155,8 @@ func (c *Client) AddRule(
 	}
 
 	var apiResp types.CloudflareAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&apiResp); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
 	if !apiResp.Success {
@@ -164,10 +164,10 @@ func (c *Client) AddRule(
 	}
 
 	var createdRule types.CloudflareRule
-	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	} else if err := json.Unmarshal(resultBytes, &createdRule); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal rule: %w", err)
+	if resultBytes, marshalErr := json.Marshal(apiResp.Result); marshalErr != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", marshalErr)
+	} else if unmarshalErr := json.Unmarshal(resultBytes, &createdRule); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to unmarshal rule: %w", unmarshalErr)
 	}
 
 	return &createdRule, nil
@@ -192,8 +192,8 @@ func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID strin
 	}
 
 	var apiResp types.CloudflareAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&apiResp); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
 	if !apiResp.Success {
@@ -201,10 +201,10 @@ func (c *Client) UpdateRule(ctx context.Context, zoneID, rulesetID, ruleID strin
 	}
 
 	var updatedRule types.CloudflareRule
-	if resultBytes, err := json.Marshal(apiResp.Result); err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	} else if err := json.Unmarshal(resultBytes, &updatedRule); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal rule: %w", err)
+	if resultBytes, marshalErr := json.Marshal(apiResp.Result); marshalErr != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", marshalErr)
+	} else if unmarshalErr := json.Unmarshal(resultBytes, &updatedRule); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to unmarshal rule: %w", unmarshalErr)
 	}
 
 	return &updatedRule, nil
@@ -263,8 +263,8 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 			if retryAfter != "" {
 				if seconds, parseErr := strconv.Atoi(retryAfter); parseErr == nil {
 					if seconds <= maxRetryWaitSeconds { // Don't wait more than 60 seconds.
-						if err := resp.Body.Close(); err != nil {
-							c.logger.WarnContext(ctx, "Failed to close response body", "error", err)
+						if closeErr := resp.Body.Close(); closeErr != nil {
+							c.logger.WarnContext(ctx, "Failed to close response body", "error", closeErr)
 						}
 						c.logger.WarnContext(ctx, "Rate limited, retrying",
 							"attempt", attempt+1,
@@ -275,8 +275,8 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, payload in
 					}
 				}
 			}
-			if err := resp.Body.Close(); err != nil {
-				c.logger.WarnContext(ctx, "Failed to close response body", "error", err)
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				c.logger.WarnContext(ctx, "Failed to close response body", "error", closeErr)
 			}
 			return nil, errors.New("rate limited and retry would take too long")
 		}
