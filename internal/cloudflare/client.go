@@ -225,6 +225,7 @@ func FindRuleByDescription(ruleset *types.CloudflareRuleset, description string)
 }
 
 // makeRequest makes an HTTP request to the Cloudflare API with retry logic.
+//
 //nolint:gocognit // Complex retry logic with rate limiting requires multiple conditions
 func (c *Client) makeRequest(ctx context.Context, method, url string, payload interface{}) (*http.Response, error) {
 	var body io.Reader

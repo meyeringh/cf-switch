@@ -1,4 +1,4 @@
-//nolint:revive // Package name "types" is conventional for this module
+//nolint:revive,testpackage // Package name "types" is conventional and needed for testing unexported functions
 package types
 
 import (

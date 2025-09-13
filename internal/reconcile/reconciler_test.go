@@ -1,4 +1,5 @@
 //nolint:testpackage // Using same package as implementation to test unexported functions
+//nolint:testpackage // Using same package as implementation to test unexported functions
 package reconcile
 
 import (
