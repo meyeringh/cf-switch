@@ -13,11 +13,7 @@ import (
 	"github.com/meyeringh/cf-switch/pkg/types"
 )
 
-//	t.Run("success", func(t *testing.T) {
-		reconciler := &MockReconciler{}
-		handler := NewRuleHandler(reconciler, slog.Default())
-
-		req := httptest.NewRequest(http.MethodGet, "/v1/rule", nil)Reconciler implements RuleReconciler for testing.
+// MockReconciler implements RuleReconciler for testing.
 type MockReconciler struct {
 	rule          *types.Rule
 	toggleErr     error
