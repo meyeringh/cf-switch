@@ -1,4 +1,3 @@
-//nolint:revive // Package name "types" is conventional for configuration and data types
 package types
 
 import (
