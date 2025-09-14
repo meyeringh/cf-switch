@@ -30,15 +30,47 @@ jobs:
     - name: Install Helm
       uses: azure/setup-helm@v4
       with:
-        version: v3.18.3
+        version: v3.19.0
 
-    - name: Run chart-releaser
-      uses: helm/chart-releaser-action@v1.6.0
-      with:
-        charts_dir: deploy/helm
-        config: .github/configs/cr.yaml
+    - name: Create release packages directory
+      run: mkdir -p .cr-release-packages
+
+    - name: Package Helm chart
+      run: |
+        helm package deploy/helm/cf-switch -d .cr-release-packages
+
+    - name: Create or update index
+      run: |
+        # Download existing index if it exists
+        if curl -f -s -o .cr-release-packages/index.yaml https://meyeringh.github.io/cf-switch/index.yaml; then
+          echo "Downloaded existing index.yaml"
+        else
+          echo "No existing index.yaml found, will create new one"
+          echo "apiVersion: v1" > .cr-release-packages/index.yaml
+          echo "entries:" >> .cr-release-packages/index.yaml
+        fi
+        
+        # Generate new index with all packages
+        helm repo index .cr-release-packages --url https://meyeringh.github.io/cf-switch --merge .cr-release-packages/index.yaml
+
+    - name: Create GitHub Release
       env:
-        CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        CHART_VERSION=$(helm show chart deploy/helm/cf-switch | grep '^version:' | awk '{print $2}')
+        CHART_NAME="cf-switch"
+        RELEASE_NAME="helm-chart-${CHART_NAME}-${CHART_VERSION}"
+        
+        # Check if release already exists
+        if gh release view "$RELEASE_NAME" >/dev/null 2>&1; then
+          echo "Release $RELEASE_NAME already exists, skipping..."
+        else
+          # Create release and upload chart
+          gh release create "$RELEASE_NAME" \
+            .cr-release-packages/*.tgz \
+            --title "Helm Chart ${CHART_NAME} ${CHART_VERSION}" \
+            --notes "Helm chart release for ${CHART_NAME} version ${CHART_VERSION}"
+        fi
 
     - name: Setup Pages
       uses: actions/configure-pages@v5
