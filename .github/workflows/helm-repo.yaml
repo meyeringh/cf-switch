@@ -53,6 +53,11 @@ jobs:
         # Generate new index with all packages
         helm repo index .cr-release-packages --url https://meyeringh.github.io/cf-switch --merge .cr-release-packages/index.yaml
 
+    - name: Copy landing page
+      run: |
+        # Copy the landing page to the packages directory
+        cp index.html .cr-release-packages/
+
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
