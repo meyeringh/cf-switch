@@ -1,0 +1,8 @@
+# Configuration for chart-releaser
+owner: meyeringh
+git-repo: cf-switch
+charts-repo-url: https://meyeringh.github.io/cf-switch
+index-path: .cr-release-packages/index.yaml
+package-path: .cr-release-packages
+pages-index-path: index.yaml
+release-name-template: "helm-chart-{{ .Name }}-{{ .Version }}"

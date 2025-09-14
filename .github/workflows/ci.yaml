@@ -181,7 +181,15 @@ jobs:
     - name: Set up Helm
       uses: azure/setup-helm@v4
       with:
-        version: v4.3.1
+        version: v3.18.3
+
+    - name: Update Chart version
+      run: |
+        # Extract version from git tag (remove 'v' prefix)
+        VERSION=${GITHUB_REF#refs/tags/v}
+        # Update Chart.yaml with the new version and appVersion
+        sed -i "s/^version:.*/version: $VERSION/" deploy/helm/cf-switch/Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" deploy/helm/cf-switch/Chart.yaml
 
     - name: Package Helm chart
       run: |
