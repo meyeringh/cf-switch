@@ -62,7 +62,8 @@ func (c *Client) EnsureAuthSecret(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	if err := c.createOrUpdateSecret(ctx, token); err != nil {
+	err = c.createOrUpdateSecret(ctx, token)
+	if err != nil {
 		return "", err
 	}
 
