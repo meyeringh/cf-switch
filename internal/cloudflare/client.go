@@ -170,6 +170,11 @@ func (c *Client) AddRule(
 		return nil, fmt.Errorf("failed to unmarshal rule: %w", unmarshalErr)
 	}
 
+	c.logger.DebugContext(ctx, "Cloudflare API response for created rule",
+		"rule_id", createdRule.ID,
+		"expression", createdRule.Expression,
+		"enabled", createdRule.Enabled)
+
 	return &createdRule, nil
 }
 

@@ -223,6 +223,11 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 
 	// Build expected expression.
 	expectedExpression := types.BuildExpression(r.config.DestHostnames)
+	
+	r.logger.DebugContext(ctx, "Rule reconciliation",
+		"existing_rule", existingRule != nil,
+		"hostnames", r.config.DestHostnames,
+		"expected_expression", expectedExpression)
 
 	if existingRule == nil {
 		// Create new rule.
@@ -233,9 +238,19 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 			Enabled:     r.config.CFRuleDefaultEnabled,
 		}
 
+		r.logger.InfoContext(ctx, "Creating new rule",
+			"expression", expectedExpression,
+			"hostnames", r.config.DestHostnames,
+			"enabled", r.config.CFRuleDefaultEnabled)
+
 		createdRule, err := r.cfClient.AddRule(ctx, r.config.CloudflareZoneID, ruleset.ID, rule)
 		if err != nil {
 			return fmt.Errorf("failed to create rule: %w", err)
+		}
+
+		// If Cloudflare didn't return the expression, use the one we sent
+		if createdRule.Expression == "" {
+			createdRule.Expression = expectedExpression
 		}
 
 		r.mutex.Lock()
