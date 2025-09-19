@@ -223,7 +223,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 
 	// Build expected expression.
 	expectedExpression := types.BuildExpression(r.config.DestHostnames)
-	
+
 	r.logger.DebugContext(ctx, "Rule reconciliation",
 		"existing_rule", existingRule != nil,
 		"hostnames", r.config.DestHostnames,
