@@ -95,14 +95,28 @@ func (c *Client) EnsureAuthSecret(ctx context.Context) (string, error) {
 		Data: secretData,
 	}
 
+	// Try to create or update the secret
 	if secret != nil {
 		// Update existing secret.
 		secretObj.ObjectMeta.ResourceVersion = secret.ObjectMeta.ResourceVersion
 		_, err = c.clientset.CoreV1().Secrets(c.namespace).Update(ctx, secretObj, metav1.UpdateOptions{})
 		if err != nil {
-			return "", fmt.Errorf("failed to update secret %s: %w", SecretName, err)
+			// If the secret was deleted between Get() and Update(), create a new one
+			if errors.IsNotFound(err) {
+				c.logger.WarnContext(ctx, "Secret was deleted during update, creating new one", "secret", SecretName)
+				// Remove ResourceVersion for create operation
+				secretObj.ObjectMeta.ResourceVersion = ""
+				_, err = c.clientset.CoreV1().Secrets(c.namespace).Create(ctx, secretObj, metav1.CreateOptions{})
+				if err != nil {
+					return "", fmt.Errorf("failed to create secret %s after update failed: %w", SecretName, err)
+				}
+				c.logger.InfoContext(ctx, "Created authentication secret", "secret", SecretName)
+			} else {
+				return "", fmt.Errorf("failed to update secret %s: %w", SecretName, err)
+			}
+		} else {
+			c.logger.InfoContext(ctx, "Updated authentication secret", "secret", SecretName)
 		}
-		c.logger.InfoContext(ctx, "Updated authentication secret", "secret", SecretName)
 	} else {
 		// Create new secret.
 		_, err = c.clientset.CoreV1().Secrets(c.namespace).Create(ctx, secretObj, metav1.CreateOptions{})
