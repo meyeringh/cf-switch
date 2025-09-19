@@ -33,6 +33,15 @@ rbac:
   # Name of the secret that RBAC permissions apply to
   secretName: cf-switch-auth
 
+# Authentication configuration
+auth:
+  # Specifies whether the authentication secret should be created
+  createSecret: true
+  # Pre-generated API token (optional, will be auto-generated if empty)
+  apiToken: ""
+  # Additional annotations for the auth secret
+  secretAnnotations: {}
+
 # Pod annotations
 podAnnotations: {}
 

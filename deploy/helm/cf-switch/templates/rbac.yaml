@@ -6,10 +6,16 @@ metadata:
   labels:
     {{- include "cf-switch.labels" . | nindent 4 }}
 rules:
+# Allow getting any secret to check existence
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+# Allow create/update/patch operations on the specific auth secret
 - apiGroups: [""]
   resources: ["secrets"]
   resourceNames: [{{ .Values.rbac.secretName | quote }}]
-  verbs: ["get", "create", "patch", "update"]
+  verbs: ["create", "patch", "update"]
+# Allow creating secrets (needed for initial creation since resourceNames doesn't work for non-existent resources)
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create"]
