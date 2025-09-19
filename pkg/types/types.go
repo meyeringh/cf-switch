@@ -103,13 +103,13 @@ func (fi *FlexibleInt) UnmarshalJSON(data []byte) error {
 }
 
 // MarshalJSON implements json.Marshaler for FlexibleInt.
-func (fi FlexibleInt) MarshalJSON() ([]byte, error) {
-	return json.Marshal(int(fi))
+func (fi *FlexibleInt) MarshalJSON() ([]byte, error) {
+	return json.Marshal(int(*fi))
 }
 
 // Int returns the integer value of FlexibleInt.
-func (fi FlexibleInt) Int() int {
-	return int(fi)
+func (fi *FlexibleInt) Int() int {
+	return int(*fi)
 }
 
 // CloudflareRule represents a single Cloudflare rule.

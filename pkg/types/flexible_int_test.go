@@ -1,8 +1,10 @@
-package types
+package types_test
 
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/meyeringh/cf-switch/pkg/types"
 )
 
 func TestFlexibleInt_UnmarshalJSON(t *testing.T) {
@@ -56,7 +58,7 @@ func TestFlexibleInt_UnmarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var fi FlexibleInt
+			var fi types.FlexibleInt
 			err := json.Unmarshal([]byte(tt.input), &fi)
 
 			if tt.wantErr {
@@ -79,8 +81,8 @@ func TestFlexibleInt_UnmarshalJSON(t *testing.T) {
 }
 
 func TestFlexibleInt_MarshalJSON(t *testing.T) {
-	fi := FlexibleInt(42)
-	
+	fi := types.FlexibleInt(42)
+
 	data, err := json.Marshal(fi)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -104,7 +106,7 @@ func TestCloudflareRule_WithStringVersion(t *testing.T) {
 		"version": "5"
 	}`
 
-	var rule CloudflareRule
+	var rule types.CloudflareRule
 	err := json.Unmarshal([]byte(jsonData), &rule)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -127,7 +129,7 @@ func TestCloudflareRule_WithIntVersion(t *testing.T) {
 		"version": 7
 	}`
 
-	var rule CloudflareRule
+	var rule types.CloudflareRule
 	err := json.Unmarshal([]byte(jsonData), &rule)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
