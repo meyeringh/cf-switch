@@ -117,8 +117,12 @@ dev-build:
 # Run locally (for development)
 dev-run: dev-build
 	@echo "Running cf-switch locally..."
-	@echo "Note: This requires valid Cloudflare credentials and Kubernetes access"
-	./$(BUILD_DIR)/$(BINARY_NAME)
+	@if [ -f .env ]; then \
+		set -a && . ./.env && set +a && \
+		RUNNING_LOCALLY=true ./$(BUILD_DIR)/$(BINARY_NAME); \
+	else \
+		RUNNING_LOCALLY=true ./$(BUILD_DIR)/$(BINARY_NAME); \
+	fi
 
 # Install development tools
 install-tools:

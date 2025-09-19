@@ -197,7 +197,17 @@ func (c *Client) UpdateRule(
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		// Read response body for error details
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("unexpected status code: %d (failed to read error response: %w)", resp.StatusCode, readErr)
+		}
+		c.logger.ErrorContext(ctx, "Cloudflare API error response",
+			"status_code", resp.StatusCode,
+			"response_body", string(body),
+			"url", url,
+			"updates", updates)
+		return nil, fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, string(body))
 	}
 
 	var apiResp types.CloudflareAPIResponse

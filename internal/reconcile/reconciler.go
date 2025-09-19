@@ -82,8 +82,16 @@ func (r *Reconciler) ToggleRule(ctx context.Context, enabled bool) (*types.Rule,
 	}
 
 	updates := map[string]interface{}{
-		"enabled": enabled,
+		"enabled":     enabled,
+		"action":      types.BlockAction,
+		"expression":  r.currentRule.Expression,
+		"description": types.RuleDescription,
 	}
+
+	r.logger.DebugContext(ctx, "Toggling rule",
+		"rule_id", r.currentRule.ID,
+		"current_description", r.currentRule.Description,
+		"updates", updates)
 
 	updatedRule, err := r.cfClient.UpdateRule(ctx, r.config.CloudflareZoneID, r.rulesetID, r.currentRule.ID, updates)
 	if err != nil {
@@ -93,11 +101,13 @@ func (r *Reconciler) ToggleRule(ctx context.Context, enabled bool) (*types.Rule,
 	// Update cached rule.
 	r.currentRule.Enabled = updatedRule.Enabled
 	r.currentRule.Version = updatedRule.Version.Int()
+	r.currentRule.Description = updatedRule.Description
 
 	r.logger.InfoContext(ctx, "Rule toggled successfully",
 		"rule_id", r.currentRule.ID,
 		"enabled", enabled,
-		"version", r.currentRule.Version)
+		"version", r.currentRule.Version,
+		"description", r.currentRule.Description)
 
 	rule := *r.currentRule
 	return &rule, nil
@@ -122,7 +132,10 @@ func (r *Reconciler) UpdateHosts(ctx context.Context, hostnames []string) (*type
 	expression := types.BuildExpression(normalizedHosts)
 
 	updates := map[string]interface{}{
-		"expression": expression,
+		"action":      types.BlockAction,
+		"expression":  expression,
+		"enabled":     r.currentRule.Enabled,
+		"description": types.RuleDescription,
 	}
 
 	updatedRule, err := r.cfClient.UpdateRule(ctx, r.config.CloudflareZoneID, r.rulesetID, r.currentRule.ID, updates)
@@ -134,12 +147,14 @@ func (r *Reconciler) UpdateHosts(ctx context.Context, hostnames []string) (*type
 	r.currentRule.Expression = updatedRule.Expression
 	r.currentRule.Hostnames = normalizedHosts
 	r.currentRule.Version = updatedRule.Version.Int()
+	r.currentRule.Description = updatedRule.Description
 
 	r.logger.InfoContext(ctx, "Rule hosts updated successfully",
 		"rule_id", r.currentRule.ID,
 		"hostnames", normalizedHosts,
 		"expression", expression,
-		"version", r.currentRule.Version)
+		"version", r.currentRule.Version,
+		"description", r.currentRule.Description)
 
 	rule := *r.currentRule
 	return &rule, nil
@@ -277,7 +292,10 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 	updates := make(map[string]interface{})
 
 	if existingRule.Expression != expectedExpression {
+		updates["action"] = types.BlockAction
 		updates["expression"] = expectedExpression
+		updates["enabled"] = existingRule.Enabled
+		updates["description"] = types.RuleDescription
 		needsUpdate = true
 		r.logger.InfoContext(ctx, "Rule expression needs update",
 			"rule_id", existingRule.ID,

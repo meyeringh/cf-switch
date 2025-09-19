@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -36,30 +38,39 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("Starting cf-switch service",
+	logger.Info("Starting cf-switch",
 		"version", "v0.1.0",
 		"zone_id", config.CloudflareZoneID,
 		"hostnames", config.DestHostnames,
 		"http_addr", config.HTTPAddr,
-		"reconcile_interval", config.ReconcileInterval)
+		"reconcile_interval", config.ReconcileInterval,
+		"running_locally", config.RunningLocally)
 
-	// Initialize Kubernetes client for secret management.
-	kubeClient, err := kube.NewClient(config.Namespace, logger)
-	if err != nil {
-		logger.Error("Failed to create Kubernetes client", "error", err)
-		os.Exit(1)
+	var authToken string
+
+	if config.RunningLocally {
+		// When running locally, use a static development token
+		authToken = generateLocalToken()
+		logger.Info("Running in local development mode", "auth_token", authToken)
+	} else {
+		// Initialize Kubernetes client for secret management.
+		kubeClient, err := kube.NewClient(config.Namespace, logger)
+		if err != nil {
+			logger.Error("Failed to create Kubernetes client", "error", err)
+			os.Exit(1)
+		}
+
+		// Ensure authentication secret exists and get token.
+		authToken, err = kubeClient.EnsureAuthSecret(ctx)
+		if err != nil {
+			logger.Error("Failed to ensure authentication secret", "error", err)
+			os.Exit(1)
+		}
+
+		logger.Info("Authentication token ready",
+			"secret_name", kube.SecretName,
+			"namespace", config.Namespace)
 	}
-
-	// Ensure authentication secret exists and get token.
-	authToken, err := kubeClient.EnsureAuthSecret(ctx)
-	if err != nil {
-		logger.Error("Failed to ensure authentication secret", "error", err)
-		os.Exit(1)
-	}
-
-	logger.Info("Authentication token ready",
-		"secret_name", kube.SecretName,
-		"namespace", config.Namespace)
 
 	// Initialize Cloudflare client.
 	cfClient := cloudflare.NewClient(config.CloudflareAPIToken, logger)
@@ -124,4 +135,14 @@ func main() {
 	}
 
 	logger.Info("cf-switch service shutdown complete")
+}
+
+// generateLocalToken generates a simple token for local development.
+func generateLocalToken() string {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		// Fallback to a static token if random generation fails
+		return "local-dev-static"
+	}
+	return base64.URLEncoding.EncodeToString(bytes)[:22] // Truncate to 22 chars
 }

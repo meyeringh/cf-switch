@@ -23,6 +23,9 @@ type Config struct {
 	HTTPAddr          string        `json:"http_addr"`
 	ReconcileInterval time.Duration `json:"reconcile_interval"`
 
+	// Development configuration.
+	RunningLocally bool `json:"running_locally"`
+
 	// Kubernetes configuration (derived from environment).
 	Namespace          string `json:"namespace"`
 	ServiceAccountName string `json:"service_account_name"`
@@ -140,6 +143,7 @@ func LoadConfig() (*Config, error) {
 	config := &Config{
 		HTTPAddr:             getEnvOrDefault("HTTP_ADDR", ":8080"),
 		CFRuleDefaultEnabled: getEnvBoolOrDefault("CF_RULE_DEFAULT_ENABLED", false),
+		RunningLocally:       getEnvBoolOrDefault("RUNNING_LOCALLY", false),
 		Namespace:            getEnvOrDefault("KUBERNETES_NAMESPACE", "default"),
 		ServiceAccountName:   getEnvOrDefault("KUBERNETES_SERVICE_ACCOUNT", "cf-switch"),
 	}
