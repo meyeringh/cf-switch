@@ -1,4 +1,3 @@
-//nolint:revive // Package name "types" is conventional for shared types
 package types
 
 import (
