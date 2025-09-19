@@ -29,18 +29,6 @@ test:
 	@echo "Running tests..."
 	$(GO_TEST) -v -race -coverprofile=coverage.out ./...
 
-# Test with coverage report
-test-coverage: test
-	@echo "Generating coverage report..."
-	go tool cover -html=coverage.out -o coverage.html
-
-# Clean
-clean:
-	@echo "Cleaning..."
-	$(GO_CLEAN)
-	rm -rf $(BUILD_DIR)
-	rm -f coverage.out coverage.html
-
 # Docker build
 docker-build:
 	@echo "Building Docker image $(IMAGE_FULL)..."
