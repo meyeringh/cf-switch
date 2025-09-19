@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -67,14 +68,58 @@ type CloudflareRuleset struct {
 	Rules       []CloudflareRule `json:"rules"`
 }
 
+// FlexibleInt is a type that can unmarshal from both string and integer JSON values.
+type FlexibleInt int
+
+// UnmarshalJSON implements json.Unmarshaler for FlexibleInt.
+func (fi *FlexibleInt) UnmarshalJSON(data []byte) error {
+	// Handle null values
+	if string(data) == "null" {
+		*fi = FlexibleInt(0)
+		return nil
+	}
+
+	// Try to unmarshal as integer first
+	var intVal int
+	if err := json.Unmarshal(data, &intVal); err == nil {
+		*fi = FlexibleInt(intVal)
+		return nil
+	}
+
+	// Try to unmarshal as string
+	var strVal string
+	if err := json.Unmarshal(data, &strVal); err != nil {
+		return fmt.Errorf("version must be either int or string, got: %s", string(data))
+	}
+
+	// Convert string to int
+	parsedInt, err := strconv.Atoi(strVal)
+	if err != nil {
+		return fmt.Errorf("version string %q is not a valid integer: %w", strVal, err)
+	}
+
+	*fi = FlexibleInt(parsedInt)
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler for FlexibleInt.
+func (fi FlexibleInt) MarshalJSON() ([]byte, error) {
+	return json.Marshal(int(fi))
+}
+
+// Int returns the integer value of FlexibleInt.
+func (fi FlexibleInt) Int() int {
+	return int(fi)
+}
+
 // CloudflareRule represents a single Cloudflare rule.
 type CloudflareRule struct {
-	ID          string `json:"id"`
-	Action      string `json:"action"`
-	Expression  string `json:"expression"`
-	Description string `json:"description"`
-	Enabled     bool   `json:"enabled"`
-	Version     int    `json:"version,omitempty"`
+	ID          string      `json:"id"`
+	Action      string      `json:"action"`
+	Expression  string      `json:"expression"`
+	Description string      `json:"description"`
+	Enabled     bool        `json:"enabled"`
+	Version     FlexibleInt `json:"version,omitempty"`
 }
 
 // CloudflareAPIError represents an error response from Cloudflare API.

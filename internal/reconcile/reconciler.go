@@ -92,7 +92,7 @@ func (r *Reconciler) ToggleRule(ctx context.Context, enabled bool) (*types.Rule,
 
 	// Update cached rule.
 	r.currentRule.Enabled = updatedRule.Enabled
-	r.currentRule.Version = updatedRule.Version
+	r.currentRule.Version = updatedRule.Version.Int()
 
 	r.logger.InfoContext(ctx, "Rule toggled successfully",
 		"rule_id", r.currentRule.ID,
@@ -133,7 +133,7 @@ func (r *Reconciler) UpdateHosts(ctx context.Context, hostnames []string) (*type
 	// Update cached rule.
 	r.currentRule.Expression = updatedRule.Expression
 	r.currentRule.Hostnames = normalizedHosts
-	r.currentRule.Version = updatedRule.Version
+	r.currentRule.Version = updatedRule.Version.Int()
 
 	r.logger.InfoContext(ctx, "Rule hosts updated successfully",
 		"rule_id", r.currentRule.ID,
@@ -245,7 +245,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 			Expression:  createdRule.Expression,
 			Hostnames:   r.config.DestHostnames,
 			Description: createdRule.Description,
-			Version:     createdRule.Version,
+			Version:     createdRule.Version.Int(),
 		}
 		r.mutex.Unlock()
 
@@ -283,14 +283,14 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 			Expression:  updatedRule.Expression,
 			Hostnames:   r.config.DestHostnames,
 			Description: updatedRule.Description,
-			Version:     updatedRule.Version,
+			Version:     updatedRule.Version.Int(),
 		}
 		r.mutex.Unlock()
 
 		r.logger.InfoContext(ctx, "Updated rule",
 			"rule_id", updatedRule.ID,
 			"expression", updatedRule.Expression,
-			"version", updatedRule.Version)
+			"version", updatedRule.Version.Int())
 	} else {
 		// No update needed, just cache current state.
 		r.mutex.Lock()
@@ -300,7 +300,7 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 			Expression:  existingRule.Expression,
 			Hostnames:   r.config.DestHostnames,
 			Description: existingRule.Description,
-			Version:     existingRule.Version,
+			Version:     existingRule.Version.Int(),
 		}
 		r.mutex.Unlock()
 
