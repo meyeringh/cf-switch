@@ -1,6 +1,6 @@
 # CF-Switch Makefile
 
-.PHONY: build test clean docker-build docker-push helm-lint helm-package lint fmt vet mod-tidy
+.PHONY: build test docker helm-lint helm-package lint fmt vet mod-tidy
 
 # Variables
 VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0-dev")
@@ -30,20 +30,10 @@ test:
 	@echo "Running tests..."
 	$(GO_TEST) -v -race -coverprofile=coverage.out ./...
 
-# Docker build
-docker-build:
+# Docker
+docker:
 	@echo "Building Docker image $(IMAGE_FULL)..."
 	docker build -t $(IMAGE_FULL) .
-
-# Docker push
-docker-push: docker-build
-	@echo "Pushing Docker image $(IMAGE_FULL)..."
-	docker push $(IMAGE_FULL)
-
-# Multi-arch Docker build and push
-docker-buildx:
-	@echo "Building multi-arch Docker image $(IMAGE_FULL)..."
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_FULL) --push .
 
 # Helm lint
 helm-lint:
