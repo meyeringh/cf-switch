@@ -70,6 +70,8 @@ release:
 	@echo "Committing Helm chart updates..."
 	@git add $(HELM_CHART)/Chart.yaml
 	@git commit -m "Update Helm chart to version $(NEW_VERSION)" || true
+	@echo "Pushing commit to origin..."
+	@git push origin main
 	@echo "Pushing tag $(NEW_VERSION) to origin..."
 	@git push origin $(NEW_VERSION)
 	@echo "Release $(NEW_VERSION) created and pushed! GitHub Actions should now be running."
