@@ -1,10 +1,6 @@
 name: Release Helm Charts to GitHub Pages
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'deploy/helm/**'
   release:
     types: [published]
 
