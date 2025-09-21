@@ -3,6 +3,7 @@ package kube
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 
@@ -125,10 +126,8 @@ func (c *Client) buildSecretObject(token string) *corev1.Secret {
 				"cf-switch.io/description": "API authentication token for cf-switch service",
 			},
 		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			TokenKey: []byte(token),
-		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: map[string]string{TokenKey: token}, // <- text in, API encodes to data
 	}
 }
 
@@ -175,10 +174,9 @@ func (c *Client) logTokenReady(ctx context.Context) {
 
 // generateToken generates a cryptographically secure random token.
 func generateToken() (string, error) {
-	bytes := make([]byte, TokenLength)
-	if _, err := rand.Read(bytes); err != nil {
+	b := make([]byte, TokenLength)
+	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("failed to generate random bytes: %w", err)
 	}
-	// Convert raw bytes directly to string - Kubernetes will base64 encode automatically
-	return string(bytes), nil
+	return base64.RawURLEncoding.EncodeToString(b), nil // 43 chars
 }
