@@ -2,8 +2,8 @@ apiVersion: v2
 name: cf-switch
 description: A Helm chart for CF-Switch - Cloudflare WAF Custom Rule toggle service
 type: application
-version: 0.12.0
-appVersion: 0.12.0
+version: test
+appVersion: test
 keywords:
   - cloudflare
   - waf
