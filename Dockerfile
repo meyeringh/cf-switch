@@ -33,7 +33,7 @@ USER 65532:65532
 LABEL org.opencontainers.image.title="cf-switch"
 LABEL org.opencontainers.image.description="Cloudflare WAF Custom Rule toggle service"
 LABEL org.opencontainers.image.source="https://github.com/meyeringh/cf-switch"
-LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 # Expose port
 EXPOSE 8080

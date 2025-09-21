@@ -2,7 +2,7 @@
 
 [![CI/CD Pipeline](https://github.com/meyeringh/cf-switch/actions/workflows/ci.yaml/badge.svg)](https://github.com/meyeringh/cf-switch/actions/workflows/ci.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/meyeringh/cf-switch)](https://goreportcard.com/report/github.com/meyeringh/cf-switch)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A Kubernetes service for managing Cloudflare WAF Custom Rules. CF-Switch manages a **single Cloudflare rule** that blocks traffic to a configurable set of hostnames, providing an API to toggle the rule on/off and update the hostname list.
 
@@ -318,7 +318,7 @@ make dev-run
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
