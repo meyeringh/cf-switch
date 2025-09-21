@@ -123,23 +123,15 @@ generate-docs:
 	@echo "API documentation available at api/openapi.yaml"
 	@echo "View with: https://editor.swagger.io/"
 
-# Version management
-version:
-	@echo "Current version: $(VERSION)"
-	@echo "Source: git describe --tags --abbrev=0"
-
-update-helm-version:
-	@echo "Updating Helm chart version to $(VERSION)..."
-	@sed -i 's/^version: .*/version: $(VERSION:v%=%)/' $(HELM_CHART)/Chart.yaml
-	@sed -i 's/^appVersion: .*/appVersion: $(VERSION)/' $(HELM_CHART)/Chart.yaml
-	@echo "Updated Helm chart to version $(VERSION)"
-
 # Create a git tag and update helm chart
 release:
 	@if [ -z "$(NEW_VERSION)" ]; then echo "Usage: make release NEW_VERSION=v1.2.3"; exit 1; fi
 	@echo "Creating release $(NEW_VERSION)..."
 	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
-	@$(MAKE) update-helm-version
+	@echo "Updating Helm chart version to $(VERSION)..."
+	@sed -i 's/^version: .*/version: $(VERSION:v%=%)/' $(HELM_CHART)/Chart.yaml
+	@sed -i 's/^appVersion: .*/appVersion: $(VERSION)/' $(HELM_CHART)/Chart.yaml
+	@echo "Updated Helm chart to version $(VERSION)"
 	@echo "Release $(NEW_VERSION) created!"
 	@echo "Push with: git push origin $(NEW_VERSION)"
 
@@ -167,7 +159,5 @@ help:
 	@echo "  dev-run         Run locally for development"
 	@echo "  install-tools   Install development tools"
 	@echo "  generate-docs   Show API documentation info"
-	@echo "  version         Show current version"
 	@echo "  release         Create git tag and update Helm chart (usage: make release NEW_VERSION=v1.2.3)"
-	@echo "  update-helm-version Update Helm chart to current git tag version"
 	@echo "  help            Show this help"
