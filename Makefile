@@ -1,6 +1,6 @@
 # CF-Switch Makefile
 
-.PHONY: build test docker helm-lint helm-package lint fmt vet mod-tidy
+.PHONY: build test docker helm-lint helm-package lint fmt vet mod-tidy release help
 
 # Variables
 VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0-dev")
@@ -63,12 +63,16 @@ release:
 	@if [ -z "$(NEW_VERSION)" ]; then echo "Usage: make release NEW_VERSION=1.2.3"; exit 1; fi
 	@echo "Creating release $(NEW_VERSION)..."
 	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
-	@echo "Updating Helm chart version to $(VERSION)..."
-	@sed -i 's/^version: .*/version: $(VERSION:v%=%)/' $(HELM_CHART)/Chart.yaml
-	@sed -i 's/^appVersion: .*/appVersion: $(VERSION)/' $(HELM_CHART)/Chart.yaml
-	@echo "Updated Helm chart to version $(VERSION)"
-	@echo "Release $(NEW_VERSION) created!"
-	@echo "Push with: git push origin $(NEW_VERSION)"
+	@echo "Updating Helm chart version to $(NEW_VERSION)..."
+	@sed -i 's/^version: .*/version: $(NEW_VERSION)/' $(HELM_CHART)/Chart.yaml
+	@sed -i 's/^appVersion: .*/appVersion: "$(NEW_VERSION)"/' $(HELM_CHART)/Chart.yaml
+	@echo "Updated Helm chart to version $(NEW_VERSION)"
+	@echo "Committing Helm chart updates..."
+	@git add $(HELM_CHART)/Chart.yaml
+	@git commit -m "Update Helm chart to version $(NEW_VERSION)" || true
+	@echo "Pushing tag $(NEW_VERSION) to origin..."
+	@git push origin $(NEW_VERSION)
+	@echo "Release $(NEW_VERSION) created and pushed! GitHub Actions should now be running."
 
 # Help
 help:
@@ -78,5 +82,5 @@ help:
 	@echo "  lint            Running Tests and then Linting everything"
 	@echo "  dev-build       Build with race detection"
 	@echo "  install-tools   Install development tools"
-	@echo "  release         Create git tag and update Helm chart (usage: make release NEW_VERSION=v1.2.3)"
+	@echo "  release         Create git tag, update Helm chart, and push to trigger CI/CD (usage: make release NEW_VERSION=1.2.3)"
 	@echo "  help            Show this help"
