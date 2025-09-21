@@ -3,8 +3,9 @@
 .PHONY: build test clean docker-build docker-push helm-lint helm-package lint fmt vet mod-tidy
 
 # Variables
+VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0-dev")
 IMAGE_REPO ?= ghcr.io/meyeringh/cf-switch
-IMAGE_TAG ?= v0.1.0
+IMAGE_TAG ?= $(VERSION)
 IMAGE_FULL = $(IMAGE_REPO):$(IMAGE_TAG)
 BINARY_NAME = cf-switch
 BUILD_DIR = ./bin
@@ -20,9 +21,9 @@ GO_MOD = go mod
 
 # Build
 build:
-	@echo "Building $(BINARY_NAME)..."
+	@echo "Building $(BINARY_NAME) $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO_BUILD) -ldflags="-w -s" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/cf-switch
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO_BUILD) -ldflags="-w -s -X main.version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/cf-switch
 
 # Test
 test:
@@ -98,9 +99,9 @@ check: fmt vet lint test
 
 # Development build (with race detection)
 dev-build:
-	@echo "Building for development..."
+	@echo "Building for development $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GO_BUILD) -race -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/cf-switch
+	$(GO_BUILD) -race -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/cf-switch
 
 # Run locally (for development)
 dev-run: dev-build
@@ -121,6 +122,26 @@ install-tools:
 generate-docs:
 	@echo "API documentation available at api/openapi.yaml"
 	@echo "View with: https://editor.swagger.io/"
+
+# Version management
+version:
+	@echo "Current version: $(VERSION)"
+	@echo "Source: git describe --tags --abbrev=0"
+
+update-helm-version:
+	@echo "Updating Helm chart version to $(VERSION)..."
+	@sed -i 's/^version: .*/version: $(VERSION:v%=%)/' $(HELM_CHART)/Chart.yaml
+	@sed -i 's/^appVersion: .*/appVersion: $(VERSION)/' $(HELM_CHART)/Chart.yaml
+	@echo "Updated Helm chart to version $(VERSION)"
+
+# Create a git tag and update helm chart
+release:
+	@if [ -z "$(NEW_VERSION)" ]; then echo "Usage: make release NEW_VERSION=v1.2.3"; exit 1; fi
+	@echo "Creating release $(NEW_VERSION)..."
+	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
+	@$(MAKE) update-helm-version
+	@echo "Release $(NEW_VERSION) created!"
+	@echo "Push with: git push origin $(NEW_VERSION)"
 
 # Help
 help:
@@ -146,4 +167,7 @@ help:
 	@echo "  dev-run         Run locally for development"
 	@echo "  install-tools   Install development tools"
 	@echo "  generate-docs   Show API documentation info"
+	@echo "  version         Show current version"
+	@echo "  release         Create git tag and update Helm chart (usage: make release NEW_VERSION=v1.2.3)"
+	@echo "  update-helm-version Update Helm chart to current git tag version"
 	@echo "  help            Show this help"

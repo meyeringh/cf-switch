@@ -22,6 +22,11 @@ const (
 	shutdownTimeout = 30 * time.Second
 )
 
+var (
+	// version is set via ldflags during build
+	version = "dev"
+)
+
 func main() {
 	// Set up structured logging.
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -39,7 +44,7 @@ func main() {
 	}
 
 	logger.Info("Starting cf-switch",
-		"version", "v0.1.0",
+		"version", version,
 		"zone_id", config.CloudflareZoneID,
 		"hostnames", config.DestHostnames,
 		"http_addr", config.HTTPAddr,
