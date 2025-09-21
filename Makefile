@@ -57,10 +57,6 @@ dev-run: dev-build
 install-tools:
 	@echo "Installing development tools..."
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.4.0
-# Generate API documentation
-generate-docs:
-	@echo "API documentation available at api/openapi.yaml"
-	@echo "View with: https://editor.swagger.io/"
 
 # Create a git tag and update helm chart
 release:
@@ -82,6 +78,5 @@ help:
 	@echo "  lint            Running Tests and then Linting everything"
 	@echo "  dev-build       Build with race detection"
 	@echo "  install-tools   Install development tools"
-	@echo "  generate-docs   Show API documentation info"
 	@echo "  release         Create git tag and update Helm chart (usage: make release NEW_VERSION=v1.2.3)"
 	@echo "  help            Show this help"
