@@ -125,7 +125,7 @@ generate-docs:
 
 # Create a git tag and update helm chart
 release:
-	@if [ -z "$(NEW_VERSION)" ]; then echo "Usage: make release NEW_VERSION=v1.2.3"; exit 1; fi
+	@if [ -z "$(NEW_VERSION)" ]; then echo "Usage: make release NEW_VERSION=1.2.3"; exit 1; fi
 	@echo "Creating release $(NEW_VERSION)..."
 	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
 	@echo "Updating Helm chart version to $(VERSION)..."
