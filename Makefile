@@ -34,7 +34,7 @@ lint:
 	$(GO_TEST) -v -race -coverprofile=coverage.out ./...
 	$(GO_FMT) ./...
 	$(GO_VET) ./...
-	golangci-lint run
+	$$(go env GOPATH)/bin/golangci-lint run
 	helm lint $(HELM_CHART)
 
 # Development build (with race detection)
@@ -56,8 +56,7 @@ dev-run: dev-build
 # Install development tools
 install-tools:
 	@echo "Installing development tools..."
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.4.0
 # Generate API documentation
 generate-docs:
 	@echo "API documentation available at api/openapi.yaml"
