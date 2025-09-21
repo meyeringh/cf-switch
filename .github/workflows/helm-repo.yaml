@@ -1,12 +1,15 @@
 name: Release Helm Charts to GitHub Pages
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types: [completed]
+    branches: [main]
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release' }}
     permissions:
       contents: write
       pages: write
@@ -16,6 +19,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
+        ref: main
         fetch-depth: 0
 
     - name: Configure Git
