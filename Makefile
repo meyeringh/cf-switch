@@ -58,24 +58,6 @@ install-tools:
 	@echo "Installing development tools..."
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.4.0
 
-# Create a git tag and update helm chart
-release:
-	@if [ -z "$(NEW_VERSION)" ]; then echo "Usage: make release NEW_VERSION=1.2.3"; exit 1; fi
-	@echo "Creating release $(NEW_VERSION)..."
-	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
-	@echo "Updating Helm chart version to $(NEW_VERSION)..."
-	@sed -i 's/^version: .*/version: $(NEW_VERSION)/' $(HELM_CHART)/Chart.yaml
-	@sed -i 's/^appVersion: .*/appVersion: "$(NEW_VERSION)"/' $(HELM_CHART)/Chart.yaml
-	@echo "Updated Helm chart to version $(NEW_VERSION)"
-	@echo "Committing Helm chart updates..."
-	@git add $(HELM_CHART)/Chart.yaml
-	@git commit -m "Update Helm chart to version $(NEW_VERSION)" || true
-	@echo "Pushing commit to origin..."
-	@git push origin main
-	@echo "Pushing tag $(NEW_VERSION) to origin..."
-	@git push origin $(NEW_VERSION)
-	@echo "Release $(NEW_VERSION) created and pushed! GitHub Actions should now be running."
-
 # Help
 help:
 	@echo "Available targets:"
@@ -84,5 +66,4 @@ help:
 	@echo "  lint            Running Tests and then Linting everything"
 	@echo "  dev-build       Build with race detection"
 	@echo "  install-tools   Install development tools"
-	@echo "  release         Create git tag, update Helm chart, and push to trigger CI/CD (usage: make release NEW_VERSION=1.2.3)"
 	@echo "  help            Show this help"
