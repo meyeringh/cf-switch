@@ -3,7 +3,6 @@ package kube
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"log/slog"
 
@@ -180,5 +179,6 @@ func generateToken() (string, error) {
 	if _, err := rand.Read(bytes); err != nil {
 		return "", fmt.Errorf("failed to generate random bytes: %w", err)
 	}
-	return base64.URLEncoding.EncodeToString(bytes), nil
+	// Convert raw bytes directly to string - Kubernetes will base64 encode automatically
+	return string(bytes), nil
 }

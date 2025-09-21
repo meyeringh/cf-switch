@@ -27,9 +27,9 @@ func TestGenerateToken(t *testing.T) {
 		t.Error("expected different tokens on subsequent calls")
 	}
 
-	// Test minimum length (base64 encoded 32 bytes should be at least 43 characters).
-	if len(token) < 43 {
-		t.Errorf("expected token length >= 43, got %d", len(token))
+	// Test minimum length (32 raw bytes).
+	if len(token) < TokenLength {
+		t.Errorf("expected token length >= %d, got %d", TokenLength, len(token))
 	}
 }
 
