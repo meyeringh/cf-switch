@@ -194,10 +194,13 @@ jobs:
         sed -i "s/^version:.*/version: $VERSION/" deploy/helm/cf-switch/Chart.yaml
         sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" deploy/helm/cf-switch/Chart.yaml
         
+        # Update values.yaml with the new image tag
+        sed -i "s/^  tag:.*/  tag: $VERSION/" deploy/helm/cf-switch/values.yaml
+        
         # Commit and push the changes
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add deploy/helm/cf-switch/Chart.yaml
+        git add deploy/helm/cf-switch/Chart.yaml deploy/helm/cf-switch/values.yaml
         git commit -m "Update Helm chart to version $VERSION" || exit 0
         git push origin main
 
