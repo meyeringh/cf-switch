@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/meyeringh/cf-switch
-  tag: 0.26.0
+  tag: 0.27.0
   pullPolicy: IfNotPresent
 
 # Image pull secrets for private registries
