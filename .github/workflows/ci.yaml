@@ -215,5 +215,6 @@ jobs:
         files: |
           dist/*.tgz
         tag_name: ${{ github.event.release.tag_name }}
+        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
