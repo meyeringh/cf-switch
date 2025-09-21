@@ -200,7 +200,11 @@ func (c *Client) UpdateRule(
 		// Read response body for error details
 		body, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			return nil, fmt.Errorf("unexpected status code: %d (failed to read error response: %w)", resp.StatusCode, readErr)
+			return nil, fmt.Errorf(
+				"unexpected status code: %d (failed to read error response: %w)",
+				resp.StatusCode,
+				readErr,
+			)
 		}
 		c.logger.ErrorContext(ctx, "Cloudflare API error response",
 			"status_code", resp.StatusCode,

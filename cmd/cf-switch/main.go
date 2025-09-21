@@ -20,10 +20,12 @@ import (
 const (
 	// Shutdown timeout for graceful server shutdown.
 	shutdownTimeout = 30 * time.Second
+	// Token byte length for local development token generation.
+	tokenByteLength = 16
 )
 
 var (
-	// version is set via ldflags during build
+	// version is set via ldflags during build.
 	version = "dev"
 )
 
@@ -59,9 +61,9 @@ func main() {
 		logger.Info("Running in local development mode", "auth_token", authToken)
 	} else {
 		// Initialize Kubernetes client for secret management.
-		kubeClient, err := kube.NewClient(config.Namespace, logger)
-		if err != nil {
-			logger.Error("Failed to create Kubernetes client", "error", err)
+		kubeClient, kubeErr := kube.NewClient(config.Namespace, logger)
+		if kubeErr != nil {
+			logger.Error("Failed to create Kubernetes client", "error", kubeErr)
 			os.Exit(1)
 		}
 
@@ -144,7 +146,7 @@ func main() {
 
 // generateLocalToken generates a simple token for local development.
 func generateLocalToken() string {
-	bytes := make([]byte, 16)
+	bytes := make([]byte, tokenByteLength)
 	if _, err := rand.Read(bytes); err != nil {
 		// Fallback to a static token if random generation fails
 		return "local-dev-static"

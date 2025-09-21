@@ -245,49 +245,64 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 		"expected_expression", expectedExpression)
 
 	if existingRule == nil {
-		// Create new rule.
-		rule := types.CloudflareRule{
-			Action:      types.BlockAction,
-			Expression:  expectedExpression,
-			Description: types.RuleDescription,
-			Enabled:     r.config.CFRuleDefaultEnabled,
-		}
-
-		r.logger.InfoContext(ctx, "Creating new rule",
-			"expression", expectedExpression,
-			"hostnames", r.config.DestHostnames,
-			"enabled", r.config.CFRuleDefaultEnabled)
-
-		createdRule, err := r.cfClient.AddRule(ctx, r.config.CloudflareZoneID, ruleset.ID, rule)
-		if err != nil {
-			return fmt.Errorf("failed to create rule: %w", err)
-		}
-
-		// If Cloudflare didn't return the expression, use the one we sent
-		if createdRule.Expression == "" {
-			createdRule.Expression = expectedExpression
-		}
-
-		r.mutex.Lock()
-		r.currentRule = &types.Rule{
-			ID:          createdRule.ID,
-			Enabled:     createdRule.Enabled,
-			Expression:  createdRule.Expression,
-			Hostnames:   r.config.DestHostnames,
-			Description: createdRule.Description,
-			Version:     createdRule.Version.Int(),
-		}
-		r.mutex.Unlock()
-
-		r.logger.InfoContext(ctx, "Created new rule",
-			"rule_id", createdRule.ID,
-			"enabled", createdRule.Enabled,
-			"expression", createdRule.Expression)
-
-		return nil
+		return r.createNewRule(ctx, ruleset, expectedExpression)
 	}
 
-	// Update existing rule if needed.
+	return r.updateExistingRule(ctx, ruleset, existingRule, expectedExpression)
+}
+
+// createNewRule creates a new rule in the ruleset.
+func (r *Reconciler) createNewRule(
+	ctx context.Context,
+	ruleset *types.CloudflareRuleset,
+	expectedExpression string,
+) error {
+	rule := types.CloudflareRule{
+		Action:      types.BlockAction,
+		Expression:  expectedExpression,
+		Description: types.RuleDescription,
+		Enabled:     r.config.CFRuleDefaultEnabled,
+	}
+
+	r.logger.InfoContext(ctx, "Creating new rule",
+		"expression", expectedExpression,
+		"hostnames", r.config.DestHostnames,
+		"enabled", r.config.CFRuleDefaultEnabled)
+
+	createdRule, err := r.cfClient.AddRule(ctx, r.config.CloudflareZoneID, ruleset.ID, rule)
+	if err != nil {
+		return fmt.Errorf("failed to create rule: %w", err)
+	}
+
+	// If Cloudflare didn't return the expression, use the one we sent
+	if createdRule.Expression == "" {
+		createdRule.Expression = expectedExpression
+	}
+
+	r.updateCurrentRule(&types.Rule{
+		ID:          createdRule.ID,
+		Enabled:     createdRule.Enabled,
+		Expression:  createdRule.Expression,
+		Hostnames:   r.config.DestHostnames,
+		Description: createdRule.Description,
+		Version:     createdRule.Version.Int(),
+	})
+
+	r.logger.InfoContext(ctx, "Created new rule",
+		"rule_id", createdRule.ID,
+		"enabled", createdRule.Enabled,
+		"expression", createdRule.Expression)
+
+	return nil
+}
+
+// updateExistingRule updates an existing rule if needed.
+func (r *Reconciler) updateExistingRule(
+	ctx context.Context,
+	ruleset *types.CloudflareRuleset,
+	existingRule *types.CloudflareRule,
+	expectedExpression string,
+) error {
 	needsUpdate := false
 	updates := make(map[string]interface{})
 
@@ -304,41 +319,55 @@ func (r *Reconciler) ensureRule(ctx context.Context, ruleset *types.CloudflareRu
 	}
 
 	if needsUpdate {
-		updatedRule, err := r.cfClient.UpdateRule(ctx, r.config.CloudflareZoneID, ruleset.ID, existingRule.ID, updates)
-		if err != nil {
-			return fmt.Errorf("failed to update rule: %w", err)
-		}
-
-		r.mutex.Lock()
-		r.currentRule = &types.Rule{
-			ID:          updatedRule.ID,
-			Enabled:     updatedRule.Enabled,
-			Expression:  updatedRule.Expression,
-			Hostnames:   r.config.DestHostnames,
-			Description: updatedRule.Description,
-			Version:     updatedRule.Version.Int(),
-		}
-		r.mutex.Unlock()
-
-		r.logger.InfoContext(ctx, "Updated rule",
-			"rule_id", updatedRule.ID,
-			"expression", updatedRule.Expression,
-			"version", updatedRule.Version.Int())
-	} else {
-		// No update needed, just cache current state.
-		r.mutex.Lock()
-		r.currentRule = &types.Rule{
-			ID:          existingRule.ID,
-			Enabled:     existingRule.Enabled,
-			Expression:  existingRule.Expression,
-			Hostnames:   r.config.DestHostnames,
-			Description: existingRule.Description,
-			Version:     existingRule.Version.Int(),
-		}
-		r.mutex.Unlock()
-
-		r.logger.DebugContext(ctx, "Rule is up to date", "rule_id", existingRule.ID)
+		return r.performRuleUpdate(ctx, ruleset, existingRule, updates)
 	}
 
+	// No update needed, just cache current state.
+	r.updateCurrentRule(&types.Rule{
+		ID:          existingRule.ID,
+		Enabled:     existingRule.Enabled,
+		Expression:  existingRule.Expression,
+		Hostnames:   r.config.DestHostnames,
+		Description: existingRule.Description,
+		Version:     existingRule.Version.Int(),
+	})
+
+	r.logger.DebugContext(ctx, "Rule is up to date", "rule_id", existingRule.ID)
 	return nil
+}
+
+// performRuleUpdate performs the actual rule update via the Cloudflare API.
+func (r *Reconciler) performRuleUpdate(
+	ctx context.Context,
+	ruleset *types.CloudflareRuleset,
+	existingRule *types.CloudflareRule,
+	updates map[string]interface{},
+) error {
+	updatedRule, err := r.cfClient.UpdateRule(ctx, r.config.CloudflareZoneID, ruleset.ID, existingRule.ID, updates)
+	if err != nil {
+		return fmt.Errorf("failed to update rule: %w", err)
+	}
+
+	r.updateCurrentRule(&types.Rule{
+		ID:          updatedRule.ID,
+		Enabled:     updatedRule.Enabled,
+		Expression:  updatedRule.Expression,
+		Hostnames:   r.config.DestHostnames,
+		Description: updatedRule.Description,
+		Version:     updatedRule.Version.Int(),
+	})
+
+	r.logger.InfoContext(ctx, "Updated rule",
+		"rule_id", updatedRule.ID,
+		"expression", updatedRule.Expression,
+		"version", updatedRule.Version.Int())
+
+	return nil
+}
+
+// updateCurrentRule safely updates the current rule state.
+func (r *Reconciler) updateCurrentRule(rule *types.Rule) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.currentRule = rule
 }
