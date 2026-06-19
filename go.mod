@@ -2,7 +2,7 @@ module github.com/meyeringh/cf-switch
 
 go 1.25.0
 
-toolchain go1.26.2
+toolchain go1.26.4
 
 require (
 	github.com/prometheus/client_golang v1.23.2
